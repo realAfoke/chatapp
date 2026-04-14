@@ -1,0 +1,103 @@
+import { useEffect, useState } from "react";
+// import { wssSend } from "../utils/chat";
+import replyIcon from "../assets/icons/reply.svg";
+import deleteIcon from "../assets/icons/delete.svg";
+import copyIcon from "../assets/icons/copy.svg";
+import forwardIcon from "../assets/icons/forward.svg";
+
+export default function ReactionUi({
+  message,
+  event,
+  setShowReactionUi,
+  socketChat,
+  // conversationId,
+}) {
+  const [reaction, setReaction] = useState(null);
+  useEffect(() => {
+    window.addEventListener("click", (e) => {
+      setShowReactionUi({ obj: "", state: false, event: "" });
+    });
+  }, []);
+
+  function sendReaction(selectedReaction) {
+    console.log(socketChat.current);
+    const socket = socketChat.current;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(
+        JSON.stringify({
+          message: message.id,
+          reaction: selectedReaction,
+          content: message.content,
+        }),
+      );
+    }
+  }
+  const getPosition = (event) => {
+    if (event.touches && event.touches.length > 0) {
+      return {
+        top: event.touches[0].clientY,
+      };
+    } else {
+      return {
+        top: event.clientY,
+      };
+    }
+  };
+  const position = getPosition(event);
+  let EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🔥"];
+  EMOJIS = EMOJIS.map((emoji, i) => {
+    return (
+      <li
+        key={i}
+        className="w-10 h-10"
+        onClick={(e) => {
+          e.stopPropagation();
+          sendReaction(emoji);
+          setShowReactionUi({ obj: "", state: false, event: "" });
+        }}
+      >
+        {emoji}
+      </li>
+    );
+  });
+
+  return (
+    <div className="fixed flex flex-col z-9999 top-0 left-0 w-full h-full bg-[rgba(0,0,0,0.3)] backdrop-blur-sm p-3">
+      <div
+        style={{
+          top: position.top,
+          alignSelf: message.align,
+          position: "absolute",
+        }}
+        className="max-w-70 flex flex-col flex-wrap"
+      >
+        <p className="flex text-white bg-[#336333] py-1 px-2 rounded-sm">
+          {message?.content}
+        </p>
+        <ul className=" flex pt-3">{EMOJIS}</ul>
+        <div className="bg-[#336333] p-4 flex flex-col gap-2 rounded-sm">
+          <p className="flex justify-between">
+            <span>reply</span>
+            <img src={replyIcon} className="w-5 h-5" alt="" />
+          </p>
+          <p className="flex justify-between">
+            <span>forward</span>
+            <img src={forwardIcon} className="w-5 h-5" alt="" />
+          </p>
+          <p className="flex justify-between">
+            <span>copy</span>
+            <img src={copyIcon} className="w-5 h-5" alt="" />
+          </p>
+          <p className="flex justify-between">
+            <span>delete for me</span>
+            <img src={deleteIcon} className="w-5 h-5" alt="" />
+          </p>
+          <p className="flex justify-between">
+            <span>delete for everyone</span>
+            <img src={deleteIcon} className="w-5 h-5" alt="" />
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,8 @@
+frontend/.gitignore
+backend/staticfiles
+*.pem
+venv
+.env
+node_modules/
+backend/media
+frontend/build
