@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 from decouple import config
 import cloudinary
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -95,7 +96,7 @@ DATABASES = {
         'USER':config('POSTGRES_USER'),
         'PASSWORD':config('POSTGRES_PASSWORD'),
         'HOST':config('HOST')
-    }
+    } if DEBUG else dj_database_url.parse(config('DATABASE_URL'))
 }
 
 AUTH_USER_MODEL='chat.User'
