@@ -184,7 +184,7 @@ DEFAULT_FILE_STORAGE='cloudinary_storage.storage.MediaCloudinaryStorage'
 MEDIA_URL='/media/'
 MEDIA_ROOT=BASE_DIR / 'media'
 
-EMAIL_BACKEND='django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'
 
 CACHES={
     'default':{
@@ -197,3 +197,9 @@ DATA_UPLOAD_MAX_MEMORY_SIZE=104857600
 FILE_UPLOAD_MAX_MEMORY_SIZE=104857600
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT=config("EMAIL_PORT")
+EMAIL_USE_TLS=config("EMAIL_USE_TLS")
+EMAIL_HOST_USER=config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD=config("EMAIL_HOST_PASSWORD")
