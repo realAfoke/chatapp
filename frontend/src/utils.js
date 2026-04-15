@@ -3,7 +3,7 @@ import applyCaseMiddleware from "axios-case-converter";
 
 export const api = applyCaseMiddleware(
   axios.create({
-    baseURL: "https://localhost",
+    baseURL: import.meta.env.VITE_API_URL,
     withCredentials: true,
   }),
 );
