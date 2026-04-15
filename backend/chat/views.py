@@ -107,7 +107,7 @@ class CheckEmailorPhone(APIView):
         user=User.objects.filter(**query).exists()
         if user:
             return Response({'error:','Email already registered'},status=409)
-        return Response(request.data)
+        #return Response(request.data)
         otp=random.randint(100000,999999)
         otp_key=list(self.request.data.keys())[0]
         cache.set(f"otp:{self.request.data[otp_key]}",otp,timeout=300)
