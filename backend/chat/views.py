@@ -101,6 +101,7 @@ class MiniProfile(generics.RetrieveAPIView):
 class CheckEmailorPhone(APIView):
     def post(self,request,*args,**kwargs):
         print('hi about to send email otp')
+        return Response(request.data)
         user=User.objects.filter(**self.request.data).exists()
         if user:
             return Response({'error:','Email already registered'},status=409)
