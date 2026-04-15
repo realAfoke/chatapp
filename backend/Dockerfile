@@ -10,4 +10,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["sh","app/build.sh"]
+CMD ["sh","build.sh"]
