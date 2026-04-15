@@ -1,4 +1,7 @@
 #!/bin/bash
-pip install -r requirements.txt
-python manage.py collectstactic --no-input
 python manage.py migrate
+python manage.py collectstatic --noinput
+
+daphne -b 0.0.0.0 -p 8000 core.asgi:application
+
+
