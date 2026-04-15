@@ -85,7 +85,6 @@ class Login(TokenObtainPairView):
             samesite='None',
             max_age=60*60*24*7
         )
-        print('about to send:',response)
         return response
     
 
@@ -100,8 +99,12 @@ class MiniProfile(generics.RetrieveAPIView):
 
 class CheckEmailorPhone(APIView):
     def post(self,request,*args,**kwargs):
-        print('hi about to send email otp')
-        user=User.objects.filter(**self.request.data).exists()
+        query={}
+        if "email" in request.data:
+            query["email"]=request.data.get("email")
+        else:
+            query["phone"]=request.data.get("phone")
+        user=User.objects.filter(**query).exists()
         if user:
             return Response({'error:','Email already registered'},status=409)
         return Response(request.data)
