@@ -33,13 +33,33 @@ def index(request):
     if request.method == 'GET':
         return Response({'hello from backend'})
     
-class Register(APIView):
-    def post(self,request):
-        serializer=RegisterSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors)
-        serializer.save()
-        return Response(serializer.data)
+class Register(TokenObtainPairView):
+    serializer_class=RegisterSerializer
+    def post(self,request,*args,**kwargs):
+        serializer=self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            data=serializer.save(**request.data)
+            response=Response({'status':'user created successfully'})
+            response.set_cookie(
+                    key='access',
+                    httponly=True,
+                    secure=True,
+                    samesite='None',
+                    path='/',
+                    max_age=60*5,
+                    value=data.get('access')
+                    )
+            response.set_cookie(
+                    key='refresh',
+                    value=data.get('refresh'),
+                    httponly=True,
+                    secure=True,
+                    samesite='None',
+                    max_age=60*60*24*7,
+                    path='/'
+                    )
+            return response
+        return Response(serializer.errors,status=400)
 
 class CustomTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
@@ -56,13 +76,7 @@ class CustomTokenRefreshView(TokenRefreshView):
 
 class Login(TokenObtainPairView):
     serializer_class=LoginSerializer
-    permission_classes=[]
-    authentication_classes=[]
     def post(self, request, *args, **kwargs):
-        print('REQUEST IS SECURE:', request.is_secure())
-        print('SCHEME:', request.scheme)
-        print('hiii got here bro')
-        print('hiii got here bro')
         token= super().post(request, *args, **kwargs)
         print('token',token)
         response=Response({'message':'login successfully'})
@@ -104,6 +118,9 @@ class CheckEmailorPhone(APIView):
             query["email"]=request.data.get("email")
         else:
             query["phone"]=request.data.get("phone")
+        for key,value in query.copy().items():
+            if len(value) <= 1:
+                return Response({"error":"input field must not be null"},status=400)
         user=User.objects.filter(**query).exists()
         if user:
             return Response({'error:','Email already registered'},status=409)

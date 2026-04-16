@@ -6,10 +6,10 @@ export default function EmailOrPhoneSign() {
   const [inputField, setInputField] = useState({ type: "email", value: "" });
   async function checkEmailOrPhone() {
     try {
-      const check = await api.post("api/auth/check-email/", {
-        email: inputField.value,
+      await api.post("api/auth/check-email/", {
+        [inputField['type']]: inputField.value,
       });
-      const resp = await check.data;
+      console.log('hi bruvvvvvv')
       navigate("confirmation/", {
         state: { [inputField["type"]]: inputField.value },
       });
@@ -66,6 +66,7 @@ export default function EmailOrPhoneSign() {
       <div className="flex justify-center">
         <button
           className="outline-none self-center px-8 py-3 rounded-[5px] bg-green-500 text-white"
+          disabled={!inputField || inputField.value.length <= 1}
           onClick={async () => await checkEmailOrPhone()}
         >
           continue
