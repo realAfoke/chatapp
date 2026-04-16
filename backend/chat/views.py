@@ -33,32 +33,13 @@ def index(request):
     if request.method == 'GET':
         return Response({'hello from backend'})
     
-class Register(TokenObtainPairView):
-    serializer_class=RegisterSerializer
-    def post(self,request,*args,**kwargs):
-        serializer=self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            data=serializer.save(**request.data)
-            response=Response({'status':'user created successfully'})
-            response.set_cookie(
-                    key='access',
-                    httponly=True,
-                    secure=True,
-                    samesite='None',
-                    path='/',
-                    max_age=60*5,
-                    value=data.get('access')
-                    )
-            response.set_cookie(
-                    key='refresh',
-                    value=data.get('refresh'),
-                    httponly=True,
-                    secure=True,
-                    samesite='None',
-                    max_age=60*60*24*7,
-                    path='/'
-                    )
-            return response
+class Register(APIView):
+    def post(self,request):
+        print('REQUEST DATA:',request.data)
+        serializer=RegisterSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save(**request.data)
+            return Response({'status':'user created successfully'},status=200)
         return Response(serializer.errors,status=400)
 
 class CustomTokenRefreshView(TokenRefreshView):
@@ -78,7 +59,6 @@ class Login(TokenObtainPairView):
     serializer_class=LoginSerializer
     def post(self, request, *args, **kwargs):
         token= super().post(request, *args, **kwargs)
-        print('token',token)
         response=Response({'message':'login successfully'})
         cookie_token=token.data
         response.set_cookie(
