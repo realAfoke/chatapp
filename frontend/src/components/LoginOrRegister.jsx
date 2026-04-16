@@ -2,6 +2,9 @@ import { useLocation } from "react-router-dom";
 import { useState } from "react";
 import { api } from "../utils";
 import { useNavigate } from "react-router-dom";
+
+
+
 export default function LoginOrRegister() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -16,12 +19,14 @@ export default function LoginOrRegister() {
     confirmPassword: "",
   });
   const path = location.pathname.split("/").filter((p) => p != "");
+
+
   async function createAccount() {
     try {
       const requestBody = { ...userData };
       delete requestBody.confirmPassword;
       await api.post("api/auth/register/", requestBody);
-      navigate("/conversation", { replace: true });
+      await loginHandler()
     } catch (error) {
       conseole.error('ERROR:', error)
       console.error(error?.response);
@@ -33,6 +38,8 @@ export default function LoginOrRegister() {
       }));
     }
   }
+
+
   async function loginHandler() {
     try {
       await api.post("api/auth/login/", {

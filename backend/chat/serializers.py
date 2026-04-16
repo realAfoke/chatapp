@@ -6,13 +6,16 @@ from . models import Connection,ConnectionRequest,Message,MessageReaction,Conver
 
 User=get_user_model()
 
-class RegisterSerializer(TokenObtainPairSerializer):
+class RegisterSerializer(serializers.ModelSerializer):
+    password=serializers.CharField(write_only=True)
+    class Meta:
+        model=User
+        fields=['email','phone','username','password']
     def create(self,validated_data):
         if User.objects.filter(email=validated_data.get('email')).exists():
             return {'mssg':'User already exist '}
-        user=User.objects.create(**validated_data)
-        refresh=self.get_token(user)
-        return {'refresh':str(refresh),'access':str(refresh.access_token)}
+        user=User.objects.create_user(**validated_data)
+        return user
     def validate(self,attrs):
         if User.objects.filter(username=attrs.get('username')).exists():
             raise serializers.ValidationError('username already taken pls chose another name')
