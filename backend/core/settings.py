@@ -184,7 +184,12 @@ DEFAULT_FILE_STORAGE='cloudinary_storage.storage.MediaCloudinaryStorage'
 MEDIA_URL='/media/'
 MEDIA_ROOT=BASE_DIR / 'media'
 
-EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'
+if DEBUG:
+    EMAIL_BACKEND='django.core.mail.backends.console.EmailBackend'
+
+else:
+    EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'
+
 
 CACHES={
     'default':{

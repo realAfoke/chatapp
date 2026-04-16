@@ -20,10 +20,10 @@ export default function LoginOrRegister() {
     try {
       const requestBody = { ...userData };
       delete requestBody.confirmPassword;
-      const create = await api.post("api/auth/register/", requestBody);
-      const resp = await create.response.data;
-      navigate("/conversation");
+      await api.post("api/auth/register/", requestBody);
+      navigate("/conversation", { replace: true });
     } catch (error) {
+      conseole.error('ERROR:', error)
       console.error(error?.response);
       const { data } = error?.response;
       setPageData((prev) => ({
@@ -35,7 +35,7 @@ export default function LoginOrRegister() {
   }
   async function loginHandler() {
     try {
-      const login = await api.post("api/auth/login/", {
+      await api.post("api/auth/login/", {
         username: userData[fieldName],
         password: userData.password,
       });
