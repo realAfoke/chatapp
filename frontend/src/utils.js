@@ -42,7 +42,7 @@ api.interceptors.response.use(
     initalConfig._retry = true;
     isRefreshing = true;
     try {
-      await axios.post("htps://localhost/api/refresh-token/");
+      await axios.post(`${import.meta.env.VITE_API_URL}/refresh-token/`);
       processFailedRequest(null);
       return api(initalConfig);
     } catch (error) {
