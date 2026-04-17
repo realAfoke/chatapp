@@ -68,8 +68,7 @@ class Login(TokenObtainPairView):
             httponly=True,
             secure=True,
             samesite='None',
-            max_age=60*5,
-            domain='.qill.onrender.com'
+            max_age=60*5
         )
         response.set_cookie(
             key='refresh',
@@ -78,8 +77,7 @@ class Login(TokenObtainPairView):
             httponly=True,
             secure=True,
             samesite='None',
-            max_age=60*60*24*7,
-            domain='.qill.onrender.com'
+            max_age=60*60*24*7
         )
         return response
     
