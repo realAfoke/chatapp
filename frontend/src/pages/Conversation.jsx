@@ -7,17 +7,15 @@ import TypingIdicator from "../components/TypingIndicator";
 import AddUserIcon from "../assets/icons/add-user.svg";
 import AddNewChat from "../components/AddNewChat";
 import { generateRandomColors } from "../utils";
+import { useAuth } from "../context";
 
 export default function ConversationListComponent() {
+  const { user } = useAuth()
   const {
     conversationObj,
-    setConversationObj,
-    miniProfile,
     setChatId,
     typing,
     connections,
-    setConnections,
-    setMessages,
   } = useOutletContext();
   // console.log(conversationObj);
   const [hideAddNewChat, setHideAddNewChat] = useState(true);
@@ -43,7 +41,7 @@ export default function ConversationListComponent() {
               <Conversation
                 conversationObj={conversationObj}
                 typing={typing}
-                miniProfile={miniProfile}
+                user={user}
               />
               <div className="h-20 w-20 bg-[#336333] p-4 rounded-sm fixed bottom-20 right-5">
                 <img
@@ -67,13 +65,12 @@ export default function ConversationListComponent() {
   );
 }
 
-export function Conversation({ conversationObj, miniProfile }) {
-  // console.log(conversationObj);
+export function Conversation({ conversationObj, user }) {
   const { conversations, ordering } = conversationObj;
   const conversationList = ordering.map((conversationId) => {
     const conversation = conversations[conversationId];
     const otherUser = conversation.allParticipants.filter(
-      (user) => user.id !== miniProfile.id,
+      (participant) => participant.id !== user.id,
     )[0];
     const lastMssg = conversation.lastMssg;
     const mssgTime = (timestamp) => {

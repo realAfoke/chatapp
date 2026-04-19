@@ -20,21 +20,35 @@ const processFailedRequest = (error, token = null) => {
   });
   failedRequest = [];
 };
+let authSetter = null
+export const setAuthToken = (fn) => {
+  authSetter = fn
+}
+
+//request interceptore
+api.interceptors.request.use((config) => {
+
+  const token = localStorage.getItem('access')
+  if (token) {
+    config.headers = { ...config.headers, Authorization: `Bearer ${token}` }
+  }
+  return config
+})
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   async (e) => {
     const initalConfig = e.config;
-    if (e.status !== 401) {
-      return new Promise.reject(error);
+    if (e?.response?.status !== 401) {
+      return Promise.reject(e);
     }
     if (initalConfig._retry) {
-      return new Promise.reject(eror);
+      return Promise.reject(e);
     }
     if (isRefreshing) {
-      return new Promise((reject, resolve) => {
-        failedRequest.push({ reject, resolve });
+      return new Promise((resolve, reject) => {
+        failedRequest.push({ resolve, reject });
       }).then(() => {
         return api(initalConfig);
       });
@@ -42,9 +56,18 @@ api.interceptors.response.use(
     initalConfig._retry = true;
     isRefreshing = true;
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/refresh-token/`);
-      processFailedRequest(null);
-      return api(initalConfig);
+      //const refresh = await axios.post(`${import.meta.env.VITE_API_URL}/refresh-token/`);
+      const refreshToken = localStorage.getItem('refresh')
+      if (refreshToken) {
+        const refresh = await axios.post(`${import.meta.env.VITE_API_URL}/api/refresh-token/`, { 'refresh': refreshToken })
+        if (authSetter) {
+          authSetter((prev) => ({ ...prev, token: refresh.data.access }))
+        }
+        localStorage.setItem('access', refresh.data.access)
+        processFailedRequest(null);
+        return api(initalConfig);
+      }
+      throw new Error('token not found')
     } catch (error) {
       processFailedRequest(error);
       window.location.href = "/login";

@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { api } from "../utils";
 import { Navigate, useNavigate } from "react-router-dom";
+import { useAuth } from "../context";
+
+
 export default function EmailOrPhoneSign() {
+  const { api, setAuth } = useAuth()
   const navigate = useNavigate();
   const [inputField, setInputField] = useState({ type: "email", value: "" });
   async function checkEmailOrPhone() {
@@ -9,7 +12,6 @@ export default function EmailOrPhoneSign() {
       await api.post("api/auth/check-email/", {
         [inputField['type']]: inputField.value,
       });
-      console.log('hi bruvvvvvv')
       navigate("confirmation/", {
         state: { [inputField["type"]]: inputField.value },
       });

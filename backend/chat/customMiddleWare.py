@@ -1,19 +1,25 @@
 
 from channels.db import database_sync_to_async
 from channels.middleware import BaseMiddleware
+from urllib.parse import parse_qs
+
 
 class CustomJwtAuthentication(BaseMiddleware):
     async def __call__(self, scope, receive, send):
+        print('inside custome')
         from django.contrib.auth.models import AnonymousUser
         from rest_framework_simplejwt.tokens import AccessToken
-        headers=dict(scope['headers'])
-        cookie_header=headers.get(b'cookie',b'').decode()
-        cookies={}
-        for cookie in cookie_header.split(';').copy():
-            if '=' in cookie:
-                key,value=cookie.split('=')
-                cookies[key.strip()]=value
-        token=cookies.get('access')
+        query_params=parse_qs(scope['query_string'].decode())
+        token=query_params.get('token',[None])[0]
+        # headers=dict(scope['headers'])
+        # cookie_header=headers.get(b'cookie',b'').decode()
+        # print('query_params:',scope['query_string'])
+        # cookies={}
+        # for cookie in cookie_header.split(';').copy():
+        #     if '=' in cookie:
+        #         key,value=cookie.split('=')
+        #         cookies[key.strip()]=value
+        # token=cookies.get('access')
         if token:
             try:
                 access_token=AccessToken(token)

@@ -1,9 +1,14 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
+import { useAuth } from "./context";
 // import illustrationVideo from "./assets/icons/Chat-app.mp4";
 // import logo from "./assets/icons/logo.jpg";
 import group from "./assets/icons/groupchaticon.svg";
 export default function App() {
+  const { isAuthenticated } = useAuth()
   const navigate = useNavigate();
+  if (isAuthenticated) {
+    return <Navigate to="/conversation" replace />;
+  }
   return (
     <div className="p-5 m-3 flex flex-col">
       <div>
@@ -53,4 +58,4 @@ export default function App() {
     </div>
   );
 }
-// #0d542b
+

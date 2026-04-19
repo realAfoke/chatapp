@@ -1,29 +1,32 @@
 import { api } from "../utils";
-import { useLoaderData } from "react-router-dom";
+import { useLoaderData, Navigate } from "react-router-dom";
 import { Outlet } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "../hooks/chatHook";
 import { normalise } from "../utils/chatUtil";
+import { useAuth } from "../context";
 
 export default function Home() {
+  const { user, isAuthenticated, token } = useAuth()
   const [userStatus, setUserStatus] = useState([]);
   const userStatusRef = useRef(null);
   const [chat, setChatId] = useState(null);
   const generalSocket = useRef(null);
   const appData = useLoaderData();
-  const [miniProfile, setMiniProfile] = useState({ ...appData[1] });
   const { conversationMessages, fullConversation } = normalise(appData[0]);
   const [messages, setMessages] = useState(conversationMessages);
   const [conversationObj, setConversationObj] = useState(fullConversation);
   const [typing, setTyping] = useState({ isTyping: false, user: "" });
   const [connections, setConnections] = useState(
-    appData[2].map((con) => con.connections),
+    appData[1].map((con) => con.connections),
   );
   //websocket state stuff
   const socketChat = useRef(null);
-
+  if (!isAuthenticated) {
+    return <Navigate to='/' replace />
+  }
   useEffect(() => {
-    const ws = new WebSocket("wss://localhost/ws/users/");
+    const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}ws/users/?token=${token}`);
     generalSocket.current = ws;
     // ws.onopen = () => console.log("user is online");
     ws.onmessage = (e) => {
@@ -62,7 +65,7 @@ export default function Home() {
             const reaction = convo.lastMssg.content;
             if (reaction.includes(saferData.reaction)) return prev;
             const otherUser = convo.allParticipants.filter(
-              (user) => user.id !== miniProfile.id,
+              (participant) => participant.id !== user.id,
             )[0];
             return {
               ...prev,
@@ -141,13 +144,13 @@ export default function Home() {
     chat,
     socketChat,
     generalSocket,
-    messages,
     setMessages,
     conversationObj,
     setConversationObj,
     userStatusRef,
     setTyping,
-    miniProfile,
+    user,
+    token
   );
   // console.log("conversationObj", conversationObj);
   return (
@@ -157,8 +160,7 @@ export default function Home() {
           context={{
             conversationObj,
             setConversationObj,
-            miniProfile,
-            setMiniProfile,
+            user,
             connections,
             setConnections,
             userStatus,
@@ -179,10 +181,8 @@ export async function loader() {
   try {
     const conversation = api.get("api/conversations/");
     const connections = api.get("api/connection/connects/");
-    const profile = api.get("api/mini-profile/");
     const responses = await Promise.allSettled([
       conversation,
-      profile,
       connections,
     ]);
     const mainResponse = [];

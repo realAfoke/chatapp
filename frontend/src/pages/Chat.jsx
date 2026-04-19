@@ -11,13 +11,14 @@ import { useChatHooks, closeMemoryLeaks } from "../hooks/chatHook";
 import ReactionUi from "../components/ReactionUi";
 import TypingIdicator from "../components/TypingIndicator";
 import goBack from "../assets/icons/go-back.svg";
+import { useAuth } from "../context";
 
 export default function Chat() {
+  const { user } = useAuth()
   const {
     userStatus,
     conversationObj,
     setConversationObj,
-    miniProfile,
     messages,
     setMessages,
     setChatId,
@@ -58,14 +59,14 @@ export default function Chat() {
 
   // console.log("conversation:", conversation);
   const typing = conversation?.typing;
-  const currentUserId = miniProfile.id;
+  const currentUserId = user.id;
   const conversationMessages =
     conversation?.messages.map((mssgId) => messages[mssgId]) ?? [];
   // debugger;
   const connectionIds = new Set(connections.map((con) => con.id));
   const [attachment, setAttachment] = useState(false);
   const otherUser = conversation?.allParticipants.filter(
-    (user) => user.id !== miniProfile.id,
+    (participant) => participant.id !== user.id,
   )[0];
   const isConnected = !connectionIds.has(otherUser?.id);
   const isRequestd = currentUserId !== connectionRequest?.fromUserInfo?.id;
@@ -148,7 +149,7 @@ export default function Chat() {
             event={showReactionUi?.event}
             setShowReactionUi={setShowReactionUi}
             socketChat={socketChat}
-            // conversationId={conversationId[2]}
+          // conversationId={conversationId[2]}
           />
         )}
         <ul className="list-none gap-3 flex flex-col p-3">
@@ -283,11 +284,10 @@ export default function Chat() {
 
           <div
             ref={bottomRef}
-            className={` gap-1 ${
-              typing?.isTyping && typing?.whoIsTyping === currentUserId
+            className={` gap-1 ${typing?.isTyping && typing?.whoIsTyping === currentUserId
                 ? "flex"
                 : "invisible"
-            }`}
+              }`}
           >
             <TypingIdicator />
           </div>

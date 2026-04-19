@@ -24,7 +24,7 @@ urlpatterns=[
     path('api/conversation/<int:conversation_id>/file-upload/',views.FileUploadView.as_view(),name='file-upload'),
     path('api/auth/check-email/',views.CheckEmailorPhone.as_view(),name='check_email'),
     path('api/verify-otp/',views.VerifyOtp.as_view(),name='verify-otp'),
-    path('api/mini-profile/',views.MiniProfile.as_view(),name='profile-view')
+    path('api/me/',views.MiniProfile.as_view(),name='profile-view')
 ]
 if settings.DEBUG:
     urlpatterns+=static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
