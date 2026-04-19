@@ -1,7 +1,8 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, Navigate } from "react-router-dom";
 import { useState } from "react";
-import { api } from "../utils";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context";
+import { api } from "../utils";
 
 
 
@@ -19,7 +20,10 @@ export default function LoginOrRegister() {
     confirmPassword: "",
   });
   const path = location.pathname.split("/").filter((p) => p != "");
-
+  const { user, setAuth } = useAuth()
+  if (user) {
+    return <Navigate to="/conversation" replace />
+  }
 
   async function createAccount() {
     try {
@@ -42,14 +46,20 @@ export default function LoginOrRegister() {
 
   async function loginHandler() {
     try {
-      await api.post("api/auth/login/", {
+      const login = await api.post("api/auth/login/", {
         username: userData[fieldName],
         password: userData.password,
       });
+      localStorage.setItem('access', login.data.access)
+      localStorage.setItem('refresh', login.data.refresh)
+      //const authUser = await api.get('api/me/')
+      setAuth((prev) => ({ ...prev, isAuthenticated: true, token: login.data.access }))
+      console.log('isAuthenticated set')
       navigate("/conversation", { replace: true });
     } catch (error) {
+      console.error('ERROR:', error)
       console.error(error.response);
-      const { data } = error.response;
+      const data = error.response;
       console.log(data);
       setPageData((prev) => ({
         ...prev,

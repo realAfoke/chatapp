@@ -1,5 +1,4 @@
 import { api } from "../utils";
-
 //data formatter
 export function formatDate(timestamp) {
   const mssgDate = new Date(timestamp);

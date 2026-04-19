@@ -1,4 +1,4 @@
-import { act, useEffect, useState } from "react";
+import { act, useEffect } from "react";
 // import { fetchMessages } from "../utils/chatUtil";
 
 //clean up image preview
@@ -16,18 +16,19 @@ export function useChat(
   chatId,
   socketChat,
   generalSocket,
-  messages,
   setMessages,
   conversations,
   setConversations,
   userStatus,
   setTyping,
   miniProfile,
+  token
 ) {
   useEffect(() => {
+    console.log(token)
     if (!chatId) return;
-    const ws = new WebSocket(`wss://localhost/ws/chat/${chatId}/`);
-    ws.onopen = () => console.log("websocket connected successfully");
+    const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}ws/chat/${chatId}/?token=${token}`);
+    ws.onopen = () => console.log("websocket connected successfully")
 
     socketChat.current = ws;
 
@@ -151,7 +152,7 @@ export function useChat(
               ...msgData.readStatus,
               [reader]:
                 userStatus.current.length > 1 &&
-                data.readStatus?.[data.reader] === "Inactive"
+                  data.readStatus?.[data.reader] === "Inactive"
                   ? "Delivered"
                   : "Read",
             },

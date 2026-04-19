@@ -44,42 +44,31 @@ class Register(APIView):
 
 class CustomTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
-        serialiser=self.get_serializer(data={'refresh':request.COOKIES.get('refresh')})
+        # serialiser=self.get_serializer(data={'refresh':request.COOKIES.get('refresh')})
+        serialiser=self.get_serializer(data={'refresh':request.data.get('refresh')})
         try:
             serialiser.is_valid(raise_exception=True)
         except TokenError as e:
             print(e)
             raise InvalidToken() from e
-        refresh_response=Response({'message':'access token refreshed'})
-        refresh_response.set_cookie(key='access',value=serialiser.validated_data.get('access'),path='/',httponly=True,secure=True,samesite='None',max_age=60*5)
-        return refresh_response
+        return Response({'access':serialiser.validated_data.get('access')})
+        
         
 
 class Login(TokenObtainPairView):
     serializer_class=LoginSerializer
     def post(self, request, *args, **kwargs):
         token= super().post(request, *args, **kwargs)
-        response=Response({'message':'login successfully'})
-        cookie_token=token.data
-        response.set_cookie(
-            key='access',
-            value=str(cookie_token['access']),
-            path='/',
-            httponly=True,
-            secure=True,
-            samesite='None',
-            max_age=60*5
-        )
-        response.set_cookie(
-            key='refresh',
-            value=str(cookie_token['refresh']),
-            path='/',
-            httponly=True,
-            secure=True,
-            samesite='None',
-            max_age=60*60*24*7
-        )
-        return response
+        return Response(token.data)
+        # response.set_cookie(
+        #     key='refresh',
+        #     value=str(cookie_token['refresh']),
+        #     path='/',
+        #     httponly=True,
+        #     secure=True,
+        #     samesite='None',
+        #     max_age=60*60*24*7
+        # )
     
 
 

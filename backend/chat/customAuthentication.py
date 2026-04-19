@@ -8,7 +8,6 @@ User=get_user_model()
 
 class CustomBackendAuthentication(ModelBackend):
     def authenticate(self, request, username = ..., password = ..., **kwargs):
-        print('about to authenticate login')
         if username is None or password is None:
             return
         user=User.objects.filter(Q(username=username)|Q(email=username)|Q(phone=username)).first()
@@ -21,7 +20,9 @@ class CustomBackendAuthentication(ModelBackend):
 
 class CustomJwtAuthentication(JWTAuthentication):
     def authenticate(self, request):
-        raw_token=request.COOKIES.get('access')
+        raw_token=request.headers.get('Authorization')
+        if raw_token:
+            raw_token=raw_token.split(' ')[1].strip()
         if raw_token is None:
             return None
         try:

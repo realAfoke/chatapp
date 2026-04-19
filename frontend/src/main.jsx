@@ -12,6 +12,7 @@ import Home, { loader as homeLoader } from "./routes/home";
 import Chat from "./pages/Chat";
 import Conversation from "./pages/Conversation";
 import ConversationListComponent from "./pages/Conversation";
+import { AuthProvider } from "./context";
 
 const routes = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -37,6 +38,8 @@ const routes = createBrowserRouter([
 ]);
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <RouterProvider router={routes} />
+    <AuthProvider>
+      <RouterProvider router={routes} />
+    </AuthProvider>
   </StrictMode>,
 );

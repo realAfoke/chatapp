@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { useRef } from "react";
-import { api } from "../utils";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { redirect } from "react-router-dom";
+import { useAuth } from "../context";
+
+
+
 export default function Otp() {
+  const { api, setAuth } = useAuth()
   const location = useLocation();
   const navigate = useNavigate();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
