@@ -6,7 +6,6 @@ from urllib.parse import parse_qs
 
 class CustomJwtAuthentication(BaseMiddleware):
     async def __call__(self, scope, receive, send):
-        print('inside custome')
         from django.contrib.auth.models import AnonymousUser
         from rest_framework_simplejwt.tokens import AccessToken
         query_params=parse_qs(scope['query_string'].decode())

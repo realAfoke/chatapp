@@ -102,7 +102,6 @@ export async function wssSend({ ref, userContent, setUserContent }) {
       msgId: "",
       preview: null,
     }));
-    console.log("sent");
   }
 }
 

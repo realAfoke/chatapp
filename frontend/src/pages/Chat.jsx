@@ -81,6 +81,7 @@ export default function Chat() {
     content: " ",
     preview: null,
   });
+
   const [presser, setPresser] = useState(null);
   const [showReactionUi, setShowReactionUi] = useState({
     state: false,
@@ -149,6 +150,7 @@ export default function Chat() {
             event={showReactionUi?.event}
             setShowReactionUi={setShowReactionUi}
             socketChat={socketChat}
+            userContent={userContent}
           // conversationId={conversationId[2]}
           />
         )}
@@ -285,8 +287,8 @@ export default function Chat() {
           <div
             ref={bottomRef}
             className={` gap-1 ${typing?.isTyping && typing?.whoIsTyping === currentUserId
-                ? "flex"
-                : "invisible"
+              ? "flex"
+              : "invisible"
               }`}
           >
             <TypingIdicator />

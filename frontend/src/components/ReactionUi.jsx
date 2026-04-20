@@ -10,6 +10,7 @@ export default function ReactionUi({
   event,
   setShowReactionUi,
   socketChat,
+  userContent
   // conversationId,
 }) {
   const [reaction, setReaction] = useState(null);
@@ -20,7 +21,6 @@ export default function ReactionUi({
   }, []);
 
   function sendReaction(selectedReaction) {
-    console.log(socketChat.current);
     const socket = socketChat.current;
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(
@@ -28,6 +28,7 @@ export default function ReactionUi({
           message: message.id,
           reaction: selectedReaction,
           content: message.content,
+          userId: userContent?.userId
         }),
       );
     }

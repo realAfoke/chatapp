@@ -35,7 +35,6 @@ def index(request):
     
 class Register(APIView):
     def post(self,request):
-        print('REQUEST DATA:',request.data)
         serializer=RegisterSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             serializer.save(**request.data)
