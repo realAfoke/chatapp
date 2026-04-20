@@ -25,7 +25,6 @@ export function useChat(
   token
 ) {
   useEffect(() => {
-    console.log(token)
     if (!chatId) return;
     const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}ws/chat/${chatId}/?token=${token}`);
     ws.onopen = () => console.log("websocket connected successfully")
@@ -35,7 +34,6 @@ export function useChat(
     ws.onmessage = (e) => {
       let data = JSON.parse(e.data);
 
-      // console.log("chat data:", data);
       if (data.status === "Read" || Array.isArray(data)) return;
       if (data.status === "active") {
         let { status, ...saferData } = data;
@@ -164,19 +162,19 @@ export function useChat(
         }
         return prev;
       });
-      // if (data?.readStatus && userStatus.current.length > 1) {
-      const socket = generalSocket.current;
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        const offline = { offline: data, conversationId: Number(chatId) };
+      if (data?.readStatus && userStatus.current.length > 1) {
+        const socket = generalSocket.current;
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          const offline = { offline: data, conversationId: Number(chatId) };
 
-        const newConvo = conversations?.conversations?.[chatId];
-        if (newConvo?.messages?.length === 0) {
-          offline["convo"] = newConvo;
+          const newConvo = conversations?.conversations?.[chatId];
+          if (newConvo?.messages?.length === 0) {
+            offline["convo"] = newConvo;
+          }
+          socket.send(JSON.stringify(offline));
         }
-        socket.send(JSON.stringify(offline));
+        return;
       }
-      return;
-      // }
     };
     socketChat.current = ws;
     // ws.onerror = (err) => console.log("ws error:", err);

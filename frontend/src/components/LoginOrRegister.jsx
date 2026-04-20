@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context";
 import { api } from "../utils";
+import { refreshTokenScheduler } from "../utils";
 
 
 
@@ -54,7 +55,7 @@ export default function LoginOrRegister() {
       localStorage.setItem('refresh', login.data.refresh)
       //const authUser = await api.get('api/me/')
       setAuth((prev) => ({ ...prev, isAuthenticated: true, token: login.data.access }))
-      console.log('isAuthenticated set')
+      refreshTokenScheduler('start')
       navigate("/conversation", { replace: true });
     } catch (error) {
       console.error('ERROR:', error)

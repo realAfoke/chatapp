@@ -33,7 +33,6 @@ class ContextRequestObj:
 
     def is_anonymoue(self):
         return self.user.is_anonymous
-    
 
 class ChatConsumer(AsyncWebsocketConsumer):       
     async def connect(self):
@@ -103,6 +102,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         elif 'reaction' in data.keys():
             data['user']=self.current_user
             await self.save_message_reaction(data)
+            data['reader']=data['userId']
             data['user']=self.current_user.id
             await self.channel_layer.group_send(self.group_name,{'type':'chat.message','message':data})
         else:
@@ -174,11 +174,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
 class ActiveUsers(AsyncWebsocketConsumer):
     async def connect(self):
         self.current_user=self.scope['user']
-        if self.current_user.is_anonymous:
+        if not self.current_user.is_authenticated:
             await self.close()
+            return
         await self.accept()
         self.group_name=f'notify_{self.current_user.id}'
-        self.general='genereal'
+        self.general='general'
         await self.channel_layer.group_add(self.group_name,self.channel_name)
         await self.channel_layer.group_add(self.general,self.channel_name)
         general_active_user=await sync_to_async(cache.get)(self.general)
@@ -222,11 +223,12 @@ class ActiveUsers(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def update_model(self):
-        from django.contrib.auth import get_user_model
-        User=get_user_model()
-        user=User.objects.get(id=self.current_user.id)
-        user.last_seen=datetime.now()
-        user.save(update_fields=['last_seen'])
+        if not self.current_user.is_anonymous:
+            from django.contrib.auth import get_user_model
+            User=get_user_model()
+            user=User.objects.get(id=self.current_user.id)
+            user.last_seen=datetime.now()
+            user.save(update_fields=['last_seen'])
 
 
 async def custom_disconnect(self):
