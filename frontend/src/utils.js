@@ -91,39 +91,39 @@ let reschedule = null
 
 export function refreshTokenScheduler(action = 'start') {
   console.log('INSIDE SCHEDULER')
-  if (action === 'stop') {
-    if (reschedule) {
-      clearTimeout(reschedule)
-      reschedule = null
-
-      return
-    }
-
-    const refreshToken = localStorage.getItem('refresh')
-
-    if (!refreshToken) {
-      // window.location.href = '/login'
-      return
-    }
-
-    axios.post(`${import.meta.env.VITE_API_URL}/api/refresh-token/`, {
-      refresh: refreshToken
-    })
-      .then((res) => {
-        localStorage.setItem('access', res.data.access)
-
-        const payload = JSON.parse(atob(res.data.access.split('.')[1]))
-        const refreshTime = payload.exp * 1000 - Date.now() - 60000
-
-        reschedule = setTimeout(() => {
-          refreshTokenScheduler('start')
-        }, refreshTime)
-      })
-      .catch((error) => {
-        console.error(error)
-        window.location.href = '/login'
-      })
-  }
+  // if (action === 'stop') {
+  //   if (reschedule) {
+  //     clearTimeout(reschedule)
+  //     reschedule = null
+  //
+  //     return
+  //   }
+  //
+  //   const refreshToken = localStorage.getItem('refresh')
+  //
+  //   if (!refreshToken) {
+  //     // window.location.href = '/login'
+  //     return
+  //   }
+  //
+  //   axios.post(`${import.meta.env.VITE_API_URL}/api/refresh-token/`, {
+  //     refresh: refreshToken
+  //   })
+  //     .then((res) => {
+  //       localStorage.setItem('access', res.data.access)
+  //
+  //       const payload = JSON.parse(atob(res.data.access.split('.')[1]))
+  //       const refreshTime = payload.exp * 1000 - Date.now() - 60000
+  //
+  //       reschedule = setTimeout(() => {
+  //         refreshTokenScheduler('start')
+  //       }, refreshTime)
+  //     })
+  //     .catch((error) => {
+  //       console.error(error)
+  //       window.location.href = '/login'
+  //     })
+  // }
 }
 
 refreshTokenScheduler()
