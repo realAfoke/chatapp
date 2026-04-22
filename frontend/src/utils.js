@@ -70,6 +70,8 @@ api.interceptors.response.use(
       throw new Error('token not found')
     } catch (error) {
       processFailedRequest(error);
+      localStorage.removeItem('access')
+      localStorage.removeItem('refresh')
       window.location.href = "/login";
       return Promise.reject(error);
     } finally {
