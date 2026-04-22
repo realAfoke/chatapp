@@ -34,50 +34,50 @@ api.interceptors.request.use((config) => {
   }
   return config
 })
-api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  async (e) => {
-    const initalConfig = e.config;
-    if (e?.response?.status !== 401) {
-      return Promise.reject(e);
-    }
-    if (initalConfig._retry) {
-      return Promise.reject(e);
-    }
-    if (isRefreshing) {
-      return new Promise((resolve, reject) => {
-        failedRequest.push({ resolve, reject });
-      }).then(() => {
-        return api(initalConfig);
-      });
-    }
-    initalConfig._retry = true;
-    isRefreshing = true;
-    try {
-      //const refresh = await axios.post(`${import.meta.env.VITE_API_URL}/refresh-token/`);
-      const refreshToken = localStorage.getItem('refresh')
-      if (refreshToken) {
-        const refresh = await axios.post(`${import.meta.env.VITE_API_URL}/api/refresh-token/`, { 'refresh': refreshToken })
-        if (authSetter) {
-          authSetter((prev) => ({ ...prev, token: refresh.data.access }))
-        }
-        localStorage.setItem('access', refresh.data.access)
-        processFailedRequest(null);
-        return api(initalConfig);
-      }
-      throw new Error('token not found')
-    } catch (error) {
-      processFailedRequest(error);
-      window.location.href = "/login";
-      return Promise.reject(error);
-    } finally {
-      isRefreshing = false;
-    }
-  },
-);
-
+// api.interceptors.response.use(
+//   (response) => {
+//     return response;
+//   },
+//   async (e) => {
+//     const initalConfig = e.config;
+//     if (e?.response?.status !== 401) {
+//       return Promise.reject(e);
+//     }
+//     if (initalConfig._retry) {
+//       return Promise.reject(e);
+//     }
+//     if (isRefreshing) {
+//       return new Promise((resolve, reject) => {
+//         failedRequest.push({ resolve, reject });
+//       }).then(() => {
+//         return api(initalConfig);
+//       });
+//     }
+//     initalConfig._retry = true;
+//     isRefreshing = true;
+//     try {
+//       //const refresh = await axios.post(`${import.meta.env.VITE_API_URL}/refresh-token/`);
+//       const refreshToken = localStorage.getItem('refresh')
+//       if (refreshToken) {
+//         const refresh = await axios.post(`${import.meta.env.VITE_API_URL}/api/refresh-token/`, { 'refresh': refreshToken })
+//         if (authSetter) {
+//           authSetter((prev) => ({ ...prev, token: refresh.data.access }))
+//         }
+//         localStorage.setItem('access', refresh.data.access)
+//         processFailedRequest(null);
+//         return api(initalConfig);
+//       }
+//       throw new Error('token not found')
+//     } catch (error) {
+//       processFailedRequest(error);
+//       window.location.href = "/login";
+//       return Promise.reject(error);
+//     } finally {
+//       isRefreshing = false;
+//     }
+//   },
+// );
+//
 export function generateRandomColors() {
   const r = Math.floor(Math.random() * 156 + 100);
   const g = Math.floor(Math.random() * 256) + 100;
@@ -91,39 +91,39 @@ let reschedule = null
 
 export function refreshTokenScheduler(action = 'start') {
   console.log('INSIDE SCHEDULER')
-  // if (action === 'stop') {
-  //   if (reschedule) {
-  //     clearTimeout(reschedule)
-  //     reschedule = null
-  //
-  //     return
-  //   }
-  //
-  //   const refreshToken = localStorage.getItem('refresh')
-  //
-  //   if (!refreshToken) {
-  //     // window.location.href = '/login'
-  //     return
-  //   }
-  //
-  //   axios.post(`${import.meta.env.VITE_API_URL}/api/refresh-token/`, {
-  //     refresh: refreshToken
-  //   })
-  //     .then((res) => {
-  //       localStorage.setItem('access', res.data.access)
-  //
-  //       const payload = JSON.parse(atob(res.data.access.split('.')[1]))
-  //       const refreshTime = payload.exp * 1000 - Date.now() - 60000
-  //
-  //       reschedule = setTimeout(() => {
-  //         refreshTokenScheduler('start')
-  //       }, refreshTime)
-  //     })
-  //     .catch((error) => {
-  //       console.error(error)
-  //       window.location.href = '/login'
-  //     })
-  // }
+  if (action === 'stop') {
+    if (reschedule) {
+      clearTimeout(reschedule)
+      reschedule = null
+
+      return
+    }
+
+    const refreshToken = localStorage.getItem('refresh')
+
+    if (!refreshToken) {
+      // window.location.href = '/login'
+      return
+    }
+
+    axios.post(`${import.meta.env.VITE_API_URL}/api/refresh-token/`, {
+      refresh: refreshToken
+    })
+      .then((res) => {
+        localStorage.setItem('access', res.data.access)
+
+        const payload = JSON.parse(atob(res.data.access.split('.')[1]))
+        const refreshTime = payload.exp * 1000 - Date.now() - 60000
+
+        reschedule = setTimeout(() => {
+          refreshTokenScheduler('start')
+        }, refreshTime)
+      })
+      .catch((error) => {
+        console.error(error)
+        window.location.href = '/login'
+      })
+  }
 }
 
 refreshTokenScheduler()
