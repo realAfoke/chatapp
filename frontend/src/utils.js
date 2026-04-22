@@ -102,7 +102,7 @@ export function refreshTokenScheduler(action = 'start') {
     const refreshToken = localStorage.getItem('refresh')
 
     if (!refreshToken) {
-      window.location.href = '/login'
+      // window.location.href = '/login'
       return
     }
 
