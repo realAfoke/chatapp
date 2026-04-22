@@ -22,10 +22,6 @@ export default function LoginOrRegister() {
   });
   const path = location.pathname.split("/").filter((p) => p != "");
   const { user, setAuth } = useAuth()
-  if (user) {
-    return <Navigate to="/conversation" replace />
-  }
-
   async function createAccount() {
     try {
       const requestBody = { ...userData };
