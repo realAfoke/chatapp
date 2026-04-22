@@ -15,7 +15,6 @@ export function AuthProvider({ children }) {
 					setAuthToken(setAuth)
 				}
 				if (auth.token) {
-					console.log('Hi inside effect calling me>>>>')
 					const user = await api.get('/api/me/')
 					setAuth((prev) => ({ ...prev, user: user.data, isAuthenticated: true }))
 				}
