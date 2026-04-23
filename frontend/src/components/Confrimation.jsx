@@ -1,3 +1,4 @@
+import { api } from "../utils";
 import { useState } from "react";
 import { useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -8,7 +9,7 @@ import { useAuth } from "../context";
 
 
 export default function Otp() {
-  const { api, setAuth } = useAuth()
+  const { setAuth } = useAuth()
   const location = useLocation();
   const navigate = useNavigate();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
@@ -47,7 +48,6 @@ export default function Otp() {
         otp: otp,
       })
       .then((response) => {
-        console.log(response);
         navigate("../continue", {
           state: { [fieldName]: location.state[fieldName] },
         });
