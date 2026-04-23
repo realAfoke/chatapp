@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react"; import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context";
+import { api } from "../utils";
 
 
 export default function EmailOrPhoneSign() {
-  const { api, setAuth } = useAuth()
+  const { setAuth } = useAuth()
   const navigate = useNavigate();
   const [inputField, setInputField] = useState({ type: "email", value: "" });
   async function checkEmailOrPhone() {
@@ -24,6 +24,7 @@ export default function EmailOrPhoneSign() {
       }
     }
   }
+
   return (
     <div className="mx-2 py-5">
       <span className="bg-black">
@@ -69,7 +70,9 @@ export default function EmailOrPhoneSign() {
         <button
           className="outline-none self-center px-8 py-3 rounded-[5px] bg-green-500 text-white"
           disabled={!inputField || inputField.value.length <= 1}
-          onClick={async () => await checkEmailOrPhone()}
+          onClick={async () => {
+            await checkEmailOrPhone()
+          }}
         >
           continue
         </button>

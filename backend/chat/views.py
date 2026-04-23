@@ -98,7 +98,7 @@ class CheckEmailorPhone(APIView):
         cache.set(f"otp:{self.request.data[otp_key]}",otp,timeout=300)
         send_mail(
             'Your Verification code',f'Your code is:{otp}',
-            'from@example.com',
+            'donotreply@qill.com',
             [self.request.data['email']]
         )
         return Response({'message':'Code sent'})
