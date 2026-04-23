@@ -92,7 +92,6 @@ export function generateRandomColors() {
 let reschedule = null
 
 export function refreshTokenScheduler(action = 'start') {
-  console.log('INSIDE SCHEDULER')
   if (action === 'stop') {
     if (reschedule) {
       clearTimeout(reschedule)
