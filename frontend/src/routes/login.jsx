@@ -13,3 +13,17 @@ export default function Login() {
     </div>
   );
 }
+
+export async function loader() {
+  try {
+    const token = localStorage.get('access')
+    if (!token) {
+      throw new Error('user not logged in')
+    }
+    await api.get(`${import.meta.env.VITE_API_URL}/api/me/`)
+    return redirect('/conversations')
+  } catch (error) {
+    return
+  }
+}
+

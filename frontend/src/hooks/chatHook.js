@@ -1,4 +1,4 @@
-import { act, useEffect } from "react";
+import { useEffect } from "react";
 // import { fetchMessages } from "../utils/chatUtil";
 
 //clean up image preview
@@ -14,16 +14,39 @@ export function closeMemoryLeaks(userContent) {
 
 export function useChat(
   chatId,
+  token,
+  otherUser,
   socketChat,
   generalSocket,
+  messages,
   setMessages,
-  conversations,
+  currentConvo,
   setConversations,
   userStatus,
   setTyping,
-  miniProfile,
-  token
+  userContent,
+  setUserContent,
+  bottomRef
 ) {
+  useEffect(() => {
+    setUserContent((prev) => ({
+      ...prev,
+      userId: otherUser?.id,
+    }));
+  }, [userStatus, otherUser]);
+
+
+  useEffect(() => {
+    const ws = socketChat.current
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const content = {
+        isTyping: userContent.isTyping,
+        whoIsTyping: userContent.userId  // this is bit flawed is kinda the opposite or something
+      }
+      ws.send(JSON.stringify(content))
+    }
+  }, [userContent.content, userContent.isTyping])
+  //
   useEffect(() => {
     if (!chatId) return;
     const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}ws/chat/${chatId}/?token=${token}`);
@@ -95,9 +118,6 @@ export function useChat(
 
         //set reaction
         if (saferData.reaction && !saferData?.["currentUserId"]) {
-          const otherUser = activeChat.allParticipants.filter(
-            (user) => user.id !== miniProfile.id,
-          )[0];
           return {
             ...prev,
             conversations: {
@@ -128,8 +148,6 @@ export function useChat(
       });
       setMessages((prev) => {
         if (data?.reaction && !data?.["currentUserId"]) {
-          // console.log("data reaction:", data);
-          // console.log("msgId:", data.message);
           const check = {
             ...prev,
             [data.message]: {
@@ -137,12 +155,10 @@ export function useChat(
               reaction: [...(prev[data.message].reaction ?? []), data.reaction],
             },
           };
-          // console.log("check:", check);
           return check;
         }
 
         if (data?.content) {
-          // console.log("content data:", data);
           let { reader, ...msgData } = data;
           msgData = {
             ...msgData,
@@ -165,9 +181,9 @@ export function useChat(
       if (data?.readStatus && userStatus.current.length > 1) {
         const socket = generalSocket.current;
         if (socket && socket.readyState === WebSocket.OPEN) {
-          const offline = { offline: data, conversationId: Number(chatId) };
+          const offline = { offline: data, conversationId: chatId };
 
-          const newConvo = conversations?.conversations?.[chatId];
+          const newConvo = currentConvo
           if (newConvo?.messages?.length === 0) {
             offline["convo"] = newConvo;
           }
@@ -177,12 +193,22 @@ export function useChat(
       }
     };
     socketChat.current = ws;
-    // ws.onerror = (err) => console.log("ws error:", err);
     ws.onclose = () => console.log("websocket connection close!!!");
 
     return () => ws.close();
-  }, [chatId, userStatus.current]);
+  }, [chatId, userStatus.current, otherUser]);
 
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [bottomRef]);
+
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+  //
   // useEffect(() => {
   //   setMessages(prevMessage);
   // }, [prevMessage]);
@@ -191,48 +217,45 @@ export function useChat(
   //   revalidate();
   // }, [userStatus]);
 }
-export function useChatHooks(
-  conversation,
-  conversationId,
-  setChat,
-  currentUserId,
-  messages,
-  setMessages,
-  userStatus,
-  userContent,
-  setUserContent,
-  bottomRef,
-  socketChat,
-  otherUser,
-) {
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  useEffect(() => {
-    setUserContent((prev) => ({
-      ...prev,
-      userId: otherUser?.id,
-    }));
-  }, [userStatus]);
-
-  useEffect(() => {
-    const socket = socketChat.current;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      const content = {
-        isTyping: userContent.isTyping,
-        whoIsTyping: userContent.userId,
-      };
-      socket.send(JSON.stringify(content));
-    }
-  }, [userContent.content, userContent.isTyping]);
-
-  useEffect(() => {
-    setChat(conversationId);
-  }, [conversationId]);
-  useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [bottomRef]);
-}
+// export function useChatHooks(
+//   conversation,
+//   conversationId,
+//   setChat,
+//   currentUserId,
+//   messages,
+//   setMessages,
+//   userStatus,
+//   userContent,
+//   setUserContent,
+//   bottomRef,
+//   socketChat,
+//   otherUser,
+// ) {
+//
+//   useEffect(() => {
+//     setUserContent((prev) => ({
+//       ...prev,
+//       userId: otherUser?.id,
+//     }));
+//   }, [userStatus]);
+//
+//   useEffect(() => {
+//     const socket = socketChat.current;
+//     if (socket && socket.readyState === WebSocket.OPEN) {
+//       const content = {
+//         isTyping: userContent.isTyping,
+//         whoIsTyping: userContent.userId,
+//       };
+//       socket.send(JSON.stringify(content));
+//     }
+//   }, [userContent.content, userContent.isTyping]);
+//
+//   useEffect(() => {
+//     setChat(conversationId);
+//   }, [conversationId]);
+//   useEffect(() => {
+//     if (bottomRef.current) {
+//       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+//     }
+//   }, [bottomRef]);
+// }

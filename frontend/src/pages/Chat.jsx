@@ -7,65 +7,53 @@ import Preview from "../components/Preview";
 import TickIcon from "../assets/icons/tick.svg?react";
 import { formatDate, touchStart, touchEnd } from "../utils/chatUtil";
 import { TypingComponent } from "../components/TypingBox";
-import { useChatHooks, closeMemoryLeaks } from "../hooks/chatHook";
+import { closeMemoryLeaks } from "../hooks/chatHook";
 import ReactionUi from "../components/ReactionUi";
 import TypingIdicator from "../components/TypingIndicator";
 import goBack from "../assets/icons/go-back.svg";
-import { useAuth } from "../context";
-
+import { useAuth } from "../routes/context";
+import { useParams } from "react-router-dom";
+import { useChat } from "../hooks/chatHook";
 export default function Chat() {
-  const { user } = useAuth()
-  const {
-    userStatus,
-    conversationObj,
-    setConversationObj,
-    messages,
-    setMessages,
-    setChatId,
-    socketChat,
-    connections,
-    setConnections,
-  } = useOutletContext();
+  const { chatId } = useParams()
+  const { generalSocket, setHideAddNewChat } = useOutletContext()
+  const socketChat = useRef(null) // store chat wss for passing on to other component
+  const { user, token, userConversations, setUserConversations, messages, setMessages, connections, setConnections, userStatusRef, userStatus, setTyping } = useAuth()
   const location = useLocation();
   const navigate = useNavigate();
   const newConvo = location?.state?.newConvo ?? {};
-  // debugger;
-  // console.log("messages", messages);
-  const conversationId = location.pathname.split("/").filter((p) => p != "")[2];
 
-  const { conversations } = conversationObj;
+  const { conversations } = userConversations;
   useEffect(() => {
-    if (Number(conversationId) in conversations) return;
-    setConversationObj((prev) => {
+    if (conversations?.[chatId]) return;
+    setUserConversations((prev) => {
       const { conversations, ordering } = prev;
-      const activeChat = conversations[conversationId];
+      const activeChat = conversations?.[chatId];
       return {
         ...prev,
         conversations: {
           ...conversations,
-          [conversationId]: {
+          [chatId]: {
             ...(activeChat ?? {}),
             ...newConvo,
             messages: [...(activeChat?.messages ?? [])],
             lastMssg: { ...(activeChat?.lastMssg ?? {}), ...newConvo.lastMssg },
           },
         },
-        ordering: [...new Set([Number(conversationId), ...ordering])],
+        ordering: [...new Set([Number(chatId), ...ordering ?? []])],
       };
     });
   });
-  const conversation = conversations[Number(conversationId)] ?? newConvo;
+  const conversation = conversations?.[chatId] ?? newConvo;
   const connectionRequest = conversation?.connectionRequest;
 
-  // console.log("conversation:", conversation);
   const typing = conversation?.typing;
   const currentUserId = user.id;
   const conversationMessages =
-    conversation?.messages.map((mssgId) => messages[mssgId]) ?? [];
-  // debugger;
+    conversation?.messages?.map((mssgId) => messages[mssgId]) ?? [];
   const connectionIds = new Set(connections.map((con) => con.id));
   const [attachment, setAttachment] = useState(false);
-  const otherUser = conversation?.allParticipants.filter(
+  const otherUser = conversation?.allParticipants?.filter(
     (participant) => participant.id !== user.id,
   )[0];
   const isConnected = !connectionIds.has(otherUser?.id);
@@ -89,20 +77,23 @@ export default function Chat() {
     event: "",
   });
   const textScreen = useRef(null);
-  useChatHooks(
-    conversation,
-    conversationId,
-    setChatId,
-    currentUserId,
-    messages,
+  useChat(
+    chatId,
+    token,
+    otherUser,
+    socketChat,
+    generalSocket,
+    conversationMessages,
     setMessages,
-    userStatus,
+    conversation,
+    setUserConversations,
+    userStatusRef,
+    setTyping,
     userContent,
     setUserContent,
     bottomRef,
-    socketChat,
-    otherUser,
   );
+
   closeMemoryLeaks(userContent);
   const bgColor = generateRandomColors();
   return (
@@ -113,14 +104,15 @@ export default function Chat() {
           className="w-7 h-7"
           alt=""
           onClick={() => {
-            navigate("../");
+            setHideAddNewChat(true)
+            navigate("/conversations");
           }}
         />
 
         <div>
-          {otherUser.profilePicture ? (
+          {otherUser?.profilePicture ? (
             <img
-              src={`${conversation.chatType === "group" ? conversation.groupImg : otherUser.profilePicture}`}
+              src={`${conversation?.chatType === "group" ? conversation?.groupImg : otherUser.profilePicture}`}
               className={`w-12 h-12 rounded-full `}
               style={{ background: bgColor }}
               alt=""
@@ -130,7 +122,7 @@ export default function Chat() {
               className="w-13 h-13  flex justify-center font-bold text-[25px] items-center rounded-full "
               style={{ background: bgColor }}
             >
-              <p>{`${otherUser.username[0].toUpperCase()}${otherUser.username[1].toUpperCase()}`}</p>
+              <p>{`${otherUser?.username[0]?.toUpperCase()}${otherUser?.username[1]?.toUpperCase()}`}</p>
             </div>
           )}
         </div>
@@ -151,7 +143,7 @@ export default function Chat() {
             setShowReactionUi={setShowReactionUi}
             socketChat={socketChat}
             userContent={userContent}
-          // conversationId={conversationId[2]}
+          // chatId={conversationId[2]}
           />
         )}
         <ul className="list-none gap-3 flex flex-col p-3">
@@ -176,8 +168,6 @@ export default function Chat() {
                           `api/connection/request/${connectionRequest?.id}/`,
                           { status: "connected" },
                         );
-                        // console.log(acceptConnection.data);
-                        // debugger;
                         setConnections((prev) => {
                           return [...prev, acceptConnection.data?.fromUserInfo];
                         });
@@ -224,9 +214,9 @@ export default function Chat() {
                   className={`${message?.sender == otherUser?.id ? "rounded-xl rounded-bl-xs bg-[rgba(0,0,0,0.7)]" : "rounded-xl rounded-br-xs bg-[#336333]"} p-2`}
                 >
                   <div className="flex max-h-500">
-                    {message?.image ? (
+                    {message?.attachmentType?.includes('image') ? (
                       <img
-                        src={message?.image}
+                        src={message?.attachment}
                         className="max-h-80 w-full"
                         onLoad={() =>
                           bottomRef.current?.scrollIntoView({
@@ -234,9 +224,9 @@ export default function Chat() {
                           })
                         }
                       />
-                    ) : message?.video ? (
+                    ) : message?.attachmentType?.includes('video') ? (
                       <video
-                        src={message?.video}
+                        src={message?.attachment}
                         controls
                         onLoadedData={() =>
                           bottomRef.current?.scrollIntoView({
@@ -244,8 +234,8 @@ export default function Chat() {
                           })
                         }
                       />
-                    ) : message?.audio ? (
-                      <audio src={message?.audio} controls />
+                    ) : message?.attachmentType?.includes('audio') ? (
+                      <audio src={message?.attachment} controls />
                     ) : (
                       ""
                     )}
@@ -310,7 +300,7 @@ export default function Chat() {
         userContent={userContent}
         message={conversationMessages}
         setMessages={setMessages}
-        conversationId={conversationId[2]}
+        chatId={chatId}
         socketChat={socketChat}
       />
     </div>

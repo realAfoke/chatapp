@@ -40,10 +40,10 @@ class User(AbstractBaseUser,PermissionsMixin):
     first_name=models.CharField(max_length=200)
     last_name=models.CharField(max_length=200)
     phone=models.CharField(max_length=200,null=True,blank=True)
-    # profile_picture=CloudinaryField('profile_picture',null=True,blank=True,folder='profile_pictures')
-    profile_picture=models.ImageField(upload_to='profile_picture/',null=True,blank=True)
-    # profile_bg_picture=CloudinaryField('bg-pictures',null=True,blank=True,folder='bg-pictures')
-    profile_bg_picture=models.ImageField(upload_to='bg_pictures/',null=True,blank=True)
+    profile_picture=CloudinaryField('profile_picture',null=True,blank=True,folder='profile_pictures')
+    # profile_picture=models.ImageField(upload_to='profile_picture/',null=True,blank=True)
+    profile_bg_picture=CloudinaryField('bg-pictures',null=True,blank=True,folder='bg-pictures')
+    # profile_bg_picture=models.ImageField(upload_to='bg_pictures/',null=True,blank=True)
     bio=models.CharField(max_length=500,null=True,blank=True)
     last_seen=models.DateTimeField(auto_now=True)
     is_online=models.BooleanField(default=False)
@@ -80,13 +80,23 @@ class Conversation(models.Model):
     updated_at=models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        if self.name:
-            return self.name
-        else:
-            users=self.participants.all()
-            print(users[1],users[0])
-         
+        users = list(self.participants.all())
+
+        if len(users) >= 2:
             return f'{users[0].username} chat with {users[1].username}'
+        elif len(users) == 1:
+            return f'{users[0].username} (waiting for another user)'
+        else:
+            return 'Empty conversation'
+    # def __str__(self):
+    #     if self.name:
+    #         return self.name
+    #     else:
+    #         users=list(self.participants.all())
+    #         print('length:',len(users))
+    #         print('USERS:',users)
+    #         # print(users[1],users[0])
+    #         return f'{users[0].username} chat with {users[1].username}'
         
     class Meta:
         db_table='conversation'
@@ -98,11 +108,12 @@ class Message(models.Model):
     content=models.TextField()
     conversation=models.ForeignKey(Conversation,related_name='conversation',on_delete=models.CASCADE)
     # attachment=models.FileField(upload_to='message_attachment/',null=True,blank=True)
-    # attachment=CloudinaryField('attachment',null=True,blank=True,folder='message_attachment')
+    attachment=CloudinaryField('attachment',null=True,blank=True,folder='message_attachment')
+    attachment_type=models.CharField(max_length=20,null=True,blank=True)
     #dev field for media remember to remove later and switch to cloudinary field
-    audio=models.FileField(upload_to='audio/',validators=[FileExtensionValidator(allowed_extensions=['mp3','wav'])],null=True,blank=True)
-    video=models.FileField(upload_to='video/',validators=[FileExtensionValidator(allowed_extensions=['mp4','wav'])],null=True,blank=True)
-    image=models.ImageField(upload_to='image_chat/',validators=[FileExtensionValidator(allowed_extensions=['jpg','jpeg','svg','png'])],null=True,blank=True)
+    # audio=models.FileField(upload_to='audio/',validators=[FileExtensionValidator(allowed_extensions=['mp3','wav'])],null=True,blank=True)
+    # video=models.FileField(upload_to='video/',validators=[FileExtensionValidator(allowed_extensions=['mp4','wav'])],null=True,blank=True)
+    # image=models.ImageField(upload_to='image_chat/',validators=[FileExtensionValidator(allowed_extensions=['jpg','jpeg','svg','png'])],null=True,blank=True)
     timestamp=models.DateTimeField(auto_now_add=True)
     is_edited=models.BooleanField(default=False)
 

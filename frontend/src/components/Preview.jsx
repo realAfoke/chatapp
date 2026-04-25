@@ -19,7 +19,7 @@ export default function Preview({
           src={close}
           className="w-10 h-10 outline-none text-[20px] font-bold absolute top-0 right-0 text-white m-4"
           onClick={() =>
-            handleUserContent((prev) => ({ ...prev, preview: null }))
+            handleUserContent((prev) => ({ ...prev, preview: null, attachment: null, type: null }))
           }
         ></img>
         {userContent.preview && userContent.type?.includes("video") ? (

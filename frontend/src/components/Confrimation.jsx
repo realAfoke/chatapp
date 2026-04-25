@@ -4,8 +4,7 @@ import { useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { redirect } from "react-router-dom";
-import { useAuth } from "../context";
-
+import useAuth from "../routes/context"
 
 
 export default function Otp() {

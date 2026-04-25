@@ -30,13 +30,13 @@ export function formatDate(timestamp) {
 //handle media/files selection
 export function handeSelectFile(e, userInfo) {
   const file = e.target.files[0];
-  const fileName = file.type.split("/")[0];
+  // const fileName = file.type.split("/")[0];
   if (file) {
     const imageUrl = URL.createObjectURL(file);
     userInfo((prev) => ({
       ...prev,
-      type: file.type,
-      [fileName]: file,
+      attachmentType: file.type,
+      attachment: file,
       preview: imageUrl,
     }));
   }

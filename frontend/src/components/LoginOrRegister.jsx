@@ -1,10 +1,9 @@
 import { useLocation, Navigate } from "react-router-dom";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context";
 import { api } from "../utils";
 import { refreshTokenScheduler } from "../utils";
-
+import { useAuth } from "../routes/context"
 
 
 export default function LoginOrRegister() {
@@ -21,7 +20,7 @@ export default function LoginOrRegister() {
     confirmPassword: "",
   });
   const path = location.pathname.split("/").filter((p) => p != "");
-  const { user, setAuth } = useAuth()
+  const { setAuth } = useAuth()
   async function createAccount() {
     try {
       const requestBody = { ...userData };
@@ -52,12 +51,11 @@ export default function LoginOrRegister() {
       //const authUser = await api.get('api/me/')
       setAuth((prev) => ({ ...prev, isAuthenticated: true, token: login.data.access }))
       refreshTokenScheduler('start')
-      navigate("/conversation", { replace: true });
+      navigate("/conversations", { replace: true });
     } catch (error) {
       console.error('ERROR:', error)
       console.error(error.response);
       const data = error.response;
-      console.log(data);
       setPageData((prev) => ({
         ...prev,
         error: data.detail,
@@ -151,3 +149,4 @@ export default function LoginOrRegister() {
     </div>
   );
 }
+
