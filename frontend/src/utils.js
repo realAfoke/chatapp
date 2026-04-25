@@ -111,6 +111,10 @@ export function refreshTokenScheduler(action = 'start') {
       reschedule = setTimeout(() => refreshTokenScheduler('start'), refreshIn)
     }).catch((error) => {
       console.error(error)
+      if (authSetter) {
+        authSetter((prev) => ({ ...prev, token: null }))
+      }
+
       localStorage.removeItem('access')
       localStorage.removeItem('refresh')
       refreshTokenScheduler('stop')

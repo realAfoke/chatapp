@@ -80,7 +80,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # self.conversation.participants.add(self.conversation.pending_user[0])
     async def receive(self, text_data = None, bytes_data = None):
         data=json.loads(text_data)
-        print('RECIEVED DATA:',data)
         pending=list(self.conversation.pending_user)
         current_active_user=await sync_to_async(cache.get)(self.group_name)
         unique_active_user={user['user'] for user in current_active_user}
@@ -95,7 +94,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if data.get('readStatus') != 'Inactive':
                 data['reader']=list(data['readStatus'].keys())[0]
             await self.channel_layer.group_send(self.group_name,{'type':'chat.message','message':data})
-            await self.add_user_to_conversation(self)
+            if pending:
+                await self.add_user_to_conversation(self)
             return
         if 'isTyping' in data.keys():
             await sync_to_async(cache.set)(f'typing_user_{self.current_user.id}','true',300)
@@ -122,7 +122,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     async def typing_indicator(self,event):
         message=event['message']
-        print('TYPING:',message)
         await self.send(text_data=json.dumps(message))
 
     async def chat_message(self,event):
