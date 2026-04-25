@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"; import { Navigate, useNavigate } from "react-router-dom";
-import { useAuth } from "../context";
 import { api } from "../utils";
+import { useAuth } from "../routes/context";
 
 
 export default function EmailOrPhoneSign() {
@@ -8,6 +8,7 @@ export default function EmailOrPhoneSign() {
   const navigate = useNavigate();
   const [inputField, setInputField] = useState({ type: "email", value: "" });
   async function checkEmailOrPhone() {
+    console.log('got here bro')
     try {
       await api.post("api/auth/check-email/", {
         [inputField['type']]: inputField.value,
@@ -24,7 +25,9 @@ export default function EmailOrPhoneSign() {
       }
     }
   }
-
+  useEffect(() => {
+    console.log('inputField length:', inputField.value.length)
+  }, [inputField.value])
   return (
     <div className="mx-2 py-5">
       <span className="bg-black">
@@ -71,6 +74,7 @@ export default function EmailOrPhoneSign() {
           className="outline-none self-center px-8 py-3 rounded-[5px] bg-green-500 text-white"
           disabled={!inputField || inputField.value.length <= 1}
           onClick={async () => {
+            console.log('CLICKED!!!!')
             await checkEmailOrPhone()
           }}
         >

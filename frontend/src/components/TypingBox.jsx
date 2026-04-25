@@ -44,7 +44,7 @@ export function TypingComponent({
           }))
         }
         id="typingBox"
-        className={`${userContent.preview ? "text-white ring-white" : "text-black ring-black"} rounded-[10px] p-2 outline-none flex-2 h-10 ring`}
+        className={`${userContent.preview ? "text-white ring-white" : "text-black ring-black"} rounded-[10px] p-3 min-h-[50px] outline-none flex-2 h-10 ring`}
       />
       <button
         onClick={async () => {

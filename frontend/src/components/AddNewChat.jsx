@@ -9,6 +9,7 @@ import goBack from "../assets/icons/go-back.svg";
 export default function AddNewChat({ connections, setHideAddNewChat }) {
   const navigate = useNavigate();
   const [showSearchInput, setShowSearchInput] = useState(false);
+  const [isCreating, setIsCreating] = useState(false)
   const debouncer = useRef(null);
   const [searchResult, setSearchResult] = useState([]);
   const [searchUser, setSearchUser] = useState("");
@@ -20,7 +21,6 @@ export default function AddNewChat({ connections, setHideAddNewChat }) {
     }
     async function findUsers() {
       try {
-        console.log(searchUser);
         const results = await api.get("api/find-users/", {
           params: { searchParam: searchUser },
         });
@@ -44,14 +44,19 @@ export default function AddNewChat({ connections, setHideAddNewChat }) {
 
   async function createNewConversation(user) {
     try {
+      if (isCreating) return
+      setIsCreating(true)
       const startNewConversation = await api.post("api/conversation/create/", {
-        pending_user: [user.id],
+        pending_user: [user.id], chatType: 'direct'
       });
       const newConvo = startNewConversation.data;
       const { id } = newConvo;
-      navigate(`chat/${id}`, { state: { newConvo: newConvo } });
+      navigate(`chat/${id}`, { state: { newConvo: newConvo }, replace: true });
     } catch (error) {
       console.error(error);
+    }
+    finally {
+      setIsCreating(false)
     }
   }
   const foundUsers = searchResult?.map((user) => {

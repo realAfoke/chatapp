@@ -176,7 +176,7 @@ CHANNEL_LAYERS={
 
 cloudinary.config(
 cloud_name=config('CLOUD_NAME'),
-api_key=config('CLOUDINARY_KEY'),
+api_key=config('API_KEY'),
 api_secret=config('CLOUDINARY_SECRET'),
 secure=True)
 

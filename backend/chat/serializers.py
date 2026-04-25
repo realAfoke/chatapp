@@ -35,7 +35,7 @@ class BasicUserSerializer(serializers.ModelSerializer):
         from django.contrib.auth import get_user_model
         User=get_user_model()
         model=User
-        fields=['id','username','profile_picture','last_seen',]
+        fields=['id','username','email','phone','profile_picture','last_seen','bio']
 
 
 
@@ -107,7 +107,6 @@ class ConnectionRequestSerializer(serializers.ModelSerializer):
         return BasicUserSerializer(obj.from_user,context=self.context).data
 
     def validate(self,data):
-        print('hi i got here :',data)
         to_user=data.get('to_user')
         current_user=self.context['request'].user
         
@@ -166,7 +165,7 @@ class ConnectionSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    # attachment=serializers.FileField(write_only=True,required=False)
+    attachment=serializers.FileField(required=False)
     # file_url=serializers.SerializerMethodField()
     
     current_user_id=serializers.SerializerMethodField()
@@ -174,7 +173,7 @@ class MessageSerializer(serializers.ModelSerializer):
     reaction=serializers.SerializerMethodField()
     class Meta:
         model=Message
-        fields=['id','sender','current_user_id','content','conversation','is_edited','read_status','timestamp','audio','video','image','reaction']
+        fields=['id','sender','current_user_id','content','conversation','is_edited','read_status','timestamp','attachment','attachment_type','reaction']
         read_only_fields=['sender','current_user_id','content','read_status','reaction']
 
     
