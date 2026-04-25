@@ -111,6 +111,8 @@ export function refreshTokenScheduler(action = 'start') {
       reschedule = setTimeout(() => refreshTokenScheduler('start'), refreshIn)
     }).catch((error) => {
       console.error(error)
+      localStorage.removeItem('access')
+      localStorage.removeItem('refresh')
       refreshTokenScheduler('stop')
       window.location.href = '/login'
       return Promise.reject(error)

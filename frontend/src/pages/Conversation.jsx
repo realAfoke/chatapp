@@ -42,7 +42,7 @@ export default function ConversationsLayOut() {
     )
   })
   return (
-    <div className="relativ">
+    <div className="relative overflow-hidden h-screen">
       <div className={`${chatId ? 'hidden md:block' : 'block'} flex flex-col h-screen`}>
 
         <Menu />
