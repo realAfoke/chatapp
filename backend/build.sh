@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "BUILD.SH IS RUNNING"
 python manage.py migrate
 python manage.py collectstatic --noinput
 
