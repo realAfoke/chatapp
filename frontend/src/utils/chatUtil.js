@@ -52,7 +52,6 @@ export async function simiulateWebsock(conversationId, setMessages) {
     const contents = await api.get(
       `api/conversation/${conversationId}/messages/`,
     );
-    console.log(setMessages);
     setMessages((prev) => ({
       ...prev,
       ...Object.fromEntries(contents.data.map((msg) => [msg.id, msg])),
