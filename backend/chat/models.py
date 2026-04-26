@@ -107,9 +107,9 @@ class Message(models.Model):
     sender=models.ForeignKey(User,related_name='message',on_delete=models.CASCADE)
     content=models.TextField()
     conversation=models.ForeignKey(Conversation,related_name='conversation',on_delete=models.CASCADE)
-    # attachment=models.FileField(upload_to='message_attachment/',null=True,blank=True)
+    attachment=models.FileField(upload_to='message_attachment/',null=True,blank=True)
     attachment=CloudinaryField('attachment',null=True,blank=True,folder='message_attachment')
-    attachment_type=models.CharField(max_length=20,null=True,blank=True)
+    # attachment_type=models.CharField(max_length=20,null=True,blank=True)
     #dev field for media remember to remove later and switch to cloudinary field
     # audio=models.FileField(upload_to='audio/',validators=[FileExtensionValidator(allowed_extensions=['mp3','wav'])],null=True,blank=True)
     # video=models.FileField(upload_to='video/',validators=[FileExtensionValidator(allowed_extensions=['mp4','wav'])],null=True,blank=True)

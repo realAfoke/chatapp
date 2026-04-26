@@ -11,17 +11,13 @@ import { useAuth } from "../routes/context";
 import { useLoaderData } from "react-router-dom";
 import { normalise } from "../utils/chatUtil";
 import { useConversationHooke } from "../hooks/conversationHooks";
-import { useParams, useLocation } from "react-router-dom";
-
-
+import { useParams } from "react-router-dom";
 
 export default function ConversationsLayOut() {
-  const location = useLocation()
   const appData = useLoaderData();
   const { chatId } = useParams()
-  const [showProfile, setShowProfile] = useState(false)
   const { conversationMessages, fullConversation } = useMemo(() => normalise(appData[0]), [appData]);
-  const { user, userConversations, setUserConversations, setMessages, typing, connections, token, setUserStatus, userStatusRef, setCurrentChat, setTyping } = useAuth()
+  const { user, userConversations, setUserConversations, setMessages, setChatId, typing, connections, token, setUserStatus, userStatusRef, setCurrentChat, setTyping } = useAuth()
   const generalSocket = useRef(null);
 
   useEffect(() => {
@@ -46,27 +42,28 @@ export default function ConversationsLayOut() {
     )
   })
   return (
-    <div className="flex overflow-hidden h-screen flex-col lg:flex-row gap-1">
-      <div className={`relative ${chatId || showProfile ? 'hidden md:flex md:flex-col lg:flex' : 'flex flex-col'}`}>
-        <Menu handleProfile={setShowProfile} />
+    <div className="relative overflow-hidden h-screen">
+      <div className={`${chatId ? 'hidden md:block' : 'block'} flex flex-col h-screen`}>
+
+        <Menu />
         <div className="p-2">
           <input
             type="search"
             name=""
             id=""
-            className="text-xs md:text-sm lg:text-sm outline-0 flex px-3 py-2 my-2 ring-1 ring-green-500 rounded-[25px] w-full"
+            className="outline-0 flex px-5 py-4 my-2 ring-1 ring-green-500 rounded-[25px] w-full"
             placeholder="search conversation, sorry but it's now working yet"
           />
         </div>
-        <ul className="px-2 flex-1 overflow-auto">
+        <ul className="px-2">
           {hideAddNewChat ? (
             <>
-              <div className="">
-                <ul className="flex flex-col">
+              <div className="flex-1 h-screen overflow-auto">
+                <ul className="flex flex-col gap-3">
                   {conversations}
                 </ul>
               </div>
-              <div className=" w-14 h-14 md:w-16 md:h-16 lg:w-16 lg:h-16 bg-[#336333] p-4 rounded-sm absolute bottom-50 right-10 md:bottom-20 lg:bottom-20">
+              <div className="h-20 w-20 bg-[#336333] p-4 rounded-sm fixed bottom-20 right-5">
                 <img
                   src={AddUserIcon}
                   onClick={() => setHideAddNewChat((prev) => !prev)}
@@ -83,13 +80,10 @@ export default function ConversationsLayOut() {
           )}
         </ul>
       </div>
-      <div className="flex-1">
-        <Outlet context={{ generalSocket, setHideAddNewChat }} />
-      </div>
+      <Outlet context={{ generalSocket, setHideAddNewChat }} />
     </div >
-  )
+  );
 }
-
 
 export function Convo({ conversation, otherUser, setCurrentChat }) {
   const lastMssg = conversation.lastMssg;
@@ -119,38 +113,38 @@ export function Convo({ conversation, otherUser, setCurrentChat }) {
       {otherUser.profilePicture ? (
         <img
           src={`${conversation.chatType === "group" ? conversation.groupImg : otherUser.profilePicture}`}
-          className={`w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-full `}
+          className={`w-15 h-15 rounded-full `}
           style={{ background: bgColor }}
           alt=""
         />
       ) : (
         <div
-          className="w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 flex justify-center font-bold text-xs md:text-sm lg:text-base items-center rounded-full "
+          className="w-15 h-15  flex justify-center font-bold text-[25px] items-center rounded-full "
           style={{ background: bgColor }}
         >
-          <p className="text-xs md:text-sm lg:text-base">{`${otherUser.username[0].toUpperCase()}${otherUser.username[1].toUpperCase()}`}</p>
+          <p>{`${otherUser.username[0].toUpperCase()}${otherUser.username[1].toUpperCase()}`}</p>
         </div>
       )}
 
       <div className="flex-1 flex justify-between mt-2">
         <div className="">
-          <p className="font-medium text-xs md:text-sm lg:text-base ">
+          <p className="font-medium text-lg ">
             {conversation.name ? conversation.name : otherUser.username}
           </p>
           {conversation?.typing?.isTyping ? (
             <TypingIdicator />
           ) : (
-            <p className="text-gray-500 truncate w-60 text-xs md:text-sm lg:text-sm">{lastMssg?.content}</p>
+            <p className="text-gray-500 truncate w-60">{lastMssg?.content}</p>
           )}
         </div>
         <div className="flex flex-col items-end gap-2">
           <span
-            className={`bg-green-500 text-white rounded-full  text-xs md:text-sm lg:text-base px-3 py-1 ${conversation.unreadMssgCount === 0 ? "hidden" : "block"}`}
+            className={`bg-green-500 text-white rounded-full px-3 py-1 ${conversation.unreadMssgCount === 0 ? "hidden" : "block"}`}
           >
             {conversation.unreadMssgCount}
           </span>
 
-          <span className="text-green-500  text-xs md:text-sm lg:text-sm ">
+          <span className="text-green-500">
             {lastMssg?.timestamp ? mssgTime(lastMssg?.timestamp) : ""}{" "}
           </span>
         </div>
@@ -179,4 +173,3 @@ export async function loader() {
     return redirect('/login')
   }
 }
-

@@ -14,7 +14,7 @@ from django.forms.models import model_to_dict
 
 
 def reset_active_user():
-    cache.delete('all_active_user')
+    cache.delete('general')
 
 reset_active_user()
 

@@ -160,15 +160,21 @@ export function useChat(
 
         if (data?.content) {
           let { reader, ...msgData } = data;
+          let readStatus = null
+          if (userStatus.current.length > 1) {
+            if (msgData?.readStatus?.[reader] === 'Inactive') {
+              readStatus = 'Delivered'
+            } else {
+              readStatus = 'Read'
+            }
+          } else {
+            readStatus = 'Delivered'
+          }
           msgData = {
             ...msgData,
             readStatus: {
               ...msgData.readStatus,
-              [reader]:
-                userStatus.current.length > 1 &&
-                  data.readStatus?.[data.reader] === "Inactive"
-                  ? "Delivered"
-                  : "Read",
+              [reader]: readStatus
             },
           };
           return {
@@ -197,18 +203,15 @@ export function useChat(
 
     return () => ws.close();
   }, [chatId, userStatus.current, otherUser]);
-
+  //
   useEffect(() => {
     if (bottomRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      bottomRef.current?.scrollIntoView();
     }
-  }, [bottomRef]);
-
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
   //
+
   // useEffect(() => {
   //   setMessages(prevMessage);
   // }, [prevMessage]);

@@ -14,6 +14,9 @@ import goBack from "../assets/icons/go-back.svg";
 import { useAuth } from "../routes/context";
 import { useParams } from "react-router-dom";
 import { useChat } from "../hooks/chatHook";
+
+
+
 export default function Chat() {
   const { chatId } = useParams()
   const { generalSocket, setHideAddNewChat } = useOutletContext()
@@ -96,12 +99,19 @@ export default function Chat() {
 
   closeMemoryLeaks(userContent);
   const bgColor = generateRandomColors();
+  const btnRef = useRef(null);
+
+  useEffect(() => {
+    btnRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
   return (
-    <div className="h-screen overflow-y-auto flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden">
+
       <div className="flex items-center bg-[#336333] gap-2 shadow-sm py-3 px-2">
         <img
           src={goBack}
-          className="w-7 h-7"
+          className="w-4 h-4 md:w-5 md:-h-5 lg:w-5 lg:h-5"
           alt=""
           onClick={() => {
             setHideAddNewChat(true)
@@ -113,13 +123,13 @@ export default function Chat() {
           {otherUser?.profilePicture ? (
             <img
               src={`${conversation?.chatType === "group" ? conversation?.groupImg : otherUser.profilePicture}`}
-              className={`w-12 h-12 rounded-full `}
+              className={` w-8 h-8 md:w-10 md:h-10 lg:w-10 lg:h-10 rounded-full `}
               style={{ background: bgColor }}
               alt=""
             />
           ) : (
             <div
-              className="w-13 h-13  flex justify-center font-bold text-[25px] items-center rounded-full "
+              className="  w-8 h-8 md:w-10 md:h-10 lg:w-10 lg:h-10 flex justify-center font-bold text-base md:text-lg lg:text-xl items-center rounded-full "
               style={{ background: bgColor }}
             >
               <p>{`${otherUser?.username[0]?.toUpperCase()}${otherUser?.username[1]?.toUpperCase()}`}</p>
@@ -127,15 +137,16 @@ export default function Chat() {
           )}
         </div>
         <div>
-          <div className="text-white">{otherUser?.username}</div>
-          <div className="text-white">
+          <div className="text-white text-xs md:text-sm lg:text-base">{otherUser?.username}</div>
+          <div className="text-white text-xs">
             {userStatus.includes(otherUser?.id)
               ? "online"
               : formatDate(otherUser?.lastSeen)}
           </div>
         </div>
       </div>
-      <div className="h-[calc(100%-15%)] overflow-y-auto" ref={textScreen}>
+
+      <div className="flex-1 overflow-auto flex flex-col">
         {showReactionUi?.state && (
           <ReactionUi
             message={showReactionUi?.obj}
@@ -146,7 +157,7 @@ export default function Chat() {
           // chatId={conversationId[2]}
           />
         )}
-        <ul className="list-none gap-3 flex flex-col p-3">
+        <ul className="list-none gap-3 flex flex-col p-3 ">
           <div className="text-md text-green-600 text-center flex flex-col items-center gap-3 my-4 mb-8">
             <div>
               <p>New chat started.</p>
@@ -204,35 +215,27 @@ export default function Chat() {
             return (
               <li
                 key={message?.id}
-                className={`max-w-80 max-h-200 flex flex-col items-center ${message?.sender === currentUserId ? "self-end " : "self-start"}`}
+                className={`max-w-80 max-h-200 flex flex-col items-center ${message?.sender === currentUserId ? "self-end " : "self-start"} relative`}
                 onTouchStart={(e) =>
                   touchStart(e, setPresser, setShowReactionUi, message)
                 }
                 onTouchEnd={touchEnd}
               >
                 <div
-                  className={`${message?.sender == otherUser?.id ? "rounded-xl rounded-bl-xs bg-[rgba(0,0,0,0.7)]" : "rounded-xl rounded-br-xs bg-[#336333]"} p-2`}
+                  className={`${message?.sender == otherUser?.id ? "rounded-xl rounded-bl-xs bg-[rgba(0,0,0,0.7)]" : "rounded-xl rounded-br-xs bg-[#336333]"} p-1`}
                 >
                   <div className="flex max-h-500">
                     {message?.attachmentType?.includes('image') ? (
                       <img
                         src={message?.attachment}
                         className="max-h-80 w-full"
-                        onLoad={() =>
-                          bottomRef.current?.scrollIntoView({
-                            behavior: "smooth",
-                          })
-                        }
+
                       />
                     ) : message?.attachmentType?.includes('video') ? (
                       <video
                         src={message?.attachment}
                         controls
-                        onLoadedData={() =>
-                          bottomRef.current?.scrollIntoView({
-                            behavior: "smooth",
-                          })
-                        }
+
                       />
                     ) : message?.attachmentType?.includes('audio') ? (
                       <audio src={message?.attachment} controls />
@@ -241,11 +244,11 @@ export default function Chat() {
                     )}
                   </div>
                   <div className="flex justify-between">
-                    <p className="text-white leading-5 text-[16px] flex items-center">
+                    {message?.content?.length > 1 && <p className="text-white leading-5 text-sm md:text-sm lg:text-sm flex items-center p-1">
                       {message?.content}
-                    </p>
+                    </p>}
                     {message.sender == currentUserId && (
-                      <p className="relative flex ml-1 self-end">
+                      <p className="absolute  flex ml-1 self-end bottom-1 right-0">
                         {
                           // status === "Read" ||
                           // status === "Delivered" ||
@@ -257,7 +260,7 @@ export default function Chat() {
                         }
 
                         <TickIcon
-                          className={`self-end text-[#bcbcf1] w-5 ${status === "Read" ? "text-[#bcbcf1]" : "text-gray-500"} `}
+                          className={`self-end text-[#bcbcf1] w-3 ${status === "Read" ? "text-[#bcbcf1]" : "text-gray-500"} `}
                         />
                       </p>
                     )}
@@ -284,7 +287,11 @@ export default function Chat() {
             <TypingIdicator />
           </div>
         </ul>
+
       </div>
+
+
+
       <TypingComponent
         handleAttachment={setAttachment}
         handleUserContent={setUserContent}
@@ -303,6 +310,6 @@ export default function Chat() {
         chatId={chatId}
         socketChat={socketChat}
       />
-    </div>
+    </div >
   );
 }
