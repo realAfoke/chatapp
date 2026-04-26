@@ -46,8 +46,8 @@ export default function ConversationsLayOut() {
     )
   })
   return (
-    <div className="flex overflow-hidden h-screen flex-col lg:flex-row gap-1">
-      <div className={`relative ${chatId || showProfile ? 'hidden md:flex md:flex-col lg:flex' : 'flex flex-col'}`}>
+    <div className="relative flex overflow-hidden h-screen flex-col lg:flex-row gap-1">
+      <div className={` ${chatId || showProfile ? 'hidden md:flex md:flex-col lg:flex' : 'flex flex-col'}`}>
         <Menu handleProfile={setShowProfile} />
         <div className="p-2">
           <input
@@ -66,7 +66,7 @@ export default function ConversationsLayOut() {
                   {conversations}
                 </ul>
               </div>
-              <div className=" w-14 h-14 md:w-16 md:h-16 lg:w-16 lg:h-16 bg-[#336333] p-4 rounded-sm absolute bottom-50 right-10 md:bottom-20 lg:bottom-20">
+              <div className=" w-14 h-14 md:w-16 md:h-16 lg:w-16 lg:h-16 bg-[#336333] p-4 rounded-sm absolute bottom-30 left-80 lg:left-70 lg:bottom-20">
                 <img
                   src={AddUserIcon}
                   onClick={() => setHideAddNewChat((prev) => !prev)}
