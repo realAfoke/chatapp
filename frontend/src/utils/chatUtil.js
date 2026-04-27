@@ -75,7 +75,14 @@ export async function httpSend(
     });
     const file = await api.post(
       `api/conversation/${conversationId}/file-upload/`,
-      formData,
+      formData, {
+      onUploadProgress: (progressEvent) => {
+        console.log('progress loaded:', progressEvent.loaded)
+        console.log('progres total:', progressEvent.total)
+        const percent = Math.round(progressEvent.loaded * 100) / progressEvent.total
+        console.log('percent:', percent)
+      }
+    }
     );
     await wssSend({
       ref: ref,

@@ -14,6 +14,7 @@ import goBack from "../assets/icons/go-back.svg";
 import { useAuth } from "../routes/context";
 import { useParams } from "react-router-dom";
 import { useChat } from "../hooks/chatHook";
+import image from "../assets/images/file1.jpg"
 
 
 
@@ -21,6 +22,7 @@ export default function Chat() {
   const { chatId } = useParams()
   const { generalSocket, setHideAddNewChat } = useOutletContext()
   const socketChat = useRef(null) // store chat wss for passing on to other component
+  const loader = useRef(null)
   const { user, token, userConversations, setUserConversations, messages, setMessages, connections, setConnections, userStatusRef, userStatus, setTyping } = useAuth()
   const location = useLocation();
   const navigate = useNavigate();
@@ -196,7 +198,9 @@ export default function Chat() {
           {conversationMessages?.map((message) => {
             const messagePosition =
               currentUserId === message?.sender ? "end" : "start";
-            message.align = messagePosition;
+            if (messages) {
+              message.align = messagePosition;
+            }
 
             const status = message.readStatus?.[otherUser?.id];
             const hasReaction = Object.keys(message?.readStatus || {}).includes(
@@ -274,9 +278,18 @@ export default function Chat() {
                   </ul>
                 )}
               </li>
+
             );
           })}
-
+          <li className="  relative h-50 w-50 border-5 border-red-500">
+            <img src={image} className="h-full" />
+            <div className=" backdrop-blur-xs bg-[rgba(0,0,0,0.2)] absolute top-0 h-full w-full flex flex-col items-center justify-center">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full border-4 border-black border-t-transparent animate-spin"></div>
+                <div className="absolute top-2 left-2 text-xm">rss</div>
+              </div>
+            </div>
+          </li>
           <div
             ref={bottomRef}
             className={` gap-1 ${typing?.isTyping && typing?.whoIsTyping === currentUserId
