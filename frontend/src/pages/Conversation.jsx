@@ -116,9 +116,9 @@ export function Convo({ conversation, otherUser, setCurrentChat }) {
 
       className="flex items-center gap-2 my-5"
     >
-      {otherUser.profilePicture ? (
+      {otherUser?.profilePicture ? (
         <img
-          src={`${conversation.chatType === "group" ? conversation.groupImg : otherUser.profilePicture}`}
+          src={`${conversation.chatType === "group" ? conversation.groupImg : otherUser?.profilePicture}`}
           className={`w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-full `}
           style={{ background: bgColor }}
           alt=""

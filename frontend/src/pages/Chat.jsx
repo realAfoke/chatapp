@@ -122,7 +122,7 @@ export default function Chat() {
         <div>
           {otherUser?.profilePicture ? (
             <img
-              src={`${conversation?.chatType === "group" ? conversation?.groupImg : otherUser.profilePicture}`}
+              src={`${conversation?.chatType === "group" ? conversation?.groupImg : otherUser?.profilePicture}`}
               className={` w-8 h-8 md:w-10 md:h-10 lg:w-10 lg:h-10 rounded-full `}
               style={{ background: bgColor }}
               alt=""
