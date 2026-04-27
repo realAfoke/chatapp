@@ -62,6 +62,7 @@ export async function loader() {
       throw new Error('user not logged in')
     }
     await api.get(`${import.meta.env.VITE_API_URL}/api/me/`)
+    console.log("about to redirect!!!")
     return redirect('/conversations')
   } catch (error) {
     return
