@@ -150,20 +150,26 @@ REST_FRAMEWORK={
         'chat.customAuthentication.CustomJwtAuthentication',
     )
 }
-# LOGGING={
-#     'version':1,
-#     'handlers':{
-#         'console':{
-#             'class':'logging.StreamHandler'
-#         },
-#     },
-#     'loggers':{
-#         'django.db.backends':{
-#             'handlers':['console'],
-#             'level':'DEBUG'
-#         }
-#     }
-# }
+LOGGING={
+    'version':1,
+    'disable_existing_loggers':False,
+    'handlers':{
+        'console':{
+            'class':'logging.StreamHandler'
+        },
+    },
+    'root':{
+        'handlers':['console'],
+        'level':'ERROR',
+        },
+    'loggers':{
+        'django':{
+            'handlers':['console'],
+            'level':'ERROR',
+            'propagate':True,
+            }
+        }
+}
 
 CHANNEL_LAYERS={
     'default':{
