@@ -168,13 +168,13 @@ class MessageSerializer(serializers.ModelSerializer):
     attachment=serializers.FileField(required=False)
     # file_url=serializers.SerializerMethodField()
     
-    current_user_id=serializers.SerializerMethodField()
-    read_status=serializers.SerializerMethodField()
+    # current_user_id=serializers.SerializerMethodField()
+    status=serializers.SerializerMethodField()
     reaction=serializers.SerializerMethodField()
     class Meta:
         model=Message
-        fields=['id','sender','current_user_id','content','conversation','is_edited','read_status','timestamp','attachment','attachment_type','reaction']
-        read_only_fields=['sender','current_user_id','content','read_status','reaction']
+        fields=['id','client_id','sender','text','is_edited','status','timestamp','attachment','attachment_type','reaction']
+        read_only_fields=['sender','text','status','reaction']
 
     
     def create(self, validated_data):
@@ -189,11 +189,12 @@ class MessageSerializer(serializers.ModelSerializer):
         current_user=self.context['request'].user
         return current_user.id
     
-    def get_read_status(self,obj):
-        reciepts=list(MessageReciept.objects.filter(message=obj,conversation=obj.conversation).values_list('user','status'))
-        unread_reciepts={}
-        unread_reciepts.update([reciept for reciept in reciepts])
-        return unread_reciepts
+    def get_status(self,obj):
+        reciepts=list(MessageReciept.objects.filter(message=obj,conversation=obj.conversation).values_list('status',flat=True))
+        # unread_reciepts={}
+        # unread_reciepts.update([reciept for reciept in reciepts])
+        # return unread_reciepts
+        return reciepts[0] if reciepts else None
     
     def get_reaction(self,obj):
         react= MessageReaction.objects.filter(conversation=obj.conversation,message=obj).values_list('reaction',flat=True)
@@ -203,17 +204,18 @@ class ConversaitonSerializer(serializers.ModelSerializer):
     # participants=BasicUserSerializer(many=True,read_only=True)
     # other_user_id=serializers.ListField(child=serializers.IntegerField(),write_only=True,default=list)
     pending_user=serializers.ListField(child=serializers.IntegerField(),write_only=True,default=list)
-    last_mssg=serializers.SerializerMethodField()
+    last_msg=serializers.SerializerMethodField()
     all_participants=serializers.SerializerMethodField()
     recent_reaction=serializers.SerializerMethodField()
     unread_mssg_count=serializers.SerializerMethodField()
+    # last_read_msg_id=serializers.SerializerMethodField()
     messages=serializers.SerializerMethodField()
     connection_request=serializers.SerializerMethodField()
 
     class Meta:
         model=Conversation
-        fields=['id','all_participants','name','created_at','updated_at','chat_type','last_mssg','unread_mssg_count','group_img','recent_reaction','messages','pending_user','connection_request']
-        read_only_fields=['participants','created_at','updated_at','last_mssg','all_participants','unread_mssg_count','recent_reaction','message','connection_request']
+        fields=['id','all_participants','name','created_at','updated_at','chat_type','last_msg','last_interaction','unread_mssg_count','last_read_msg_id','group_img','recent_reaction','messages','pending_user','connection_request']
+        read_only_fields=['participants','created_at','updated_at','last_msg','all_participants','unread_mssg_count','last_read_msg_id','last_interaction','recent_reaction','message','connection_request']
 
     
     def create(self, validated_data):
@@ -227,7 +229,7 @@ class ConversaitonSerializer(serializers.ModelSerializer):
         new_conversation=Conversation.objects.create(**validated_data)
         # all_user=[current_user.id,*other_user]
         new_conversation.participants.add(current_user,*other_members)
-        # Message.objects.create(sender=current_user,content='New chat created.Send a message to continue...',conversation=new_conversation)
+        # Message.objects.create(sender=current_user,text='New chat created.Send a message to continue...',conversation=new_conversation)
         return new_conversation
     
     def validate(self, attrs):
@@ -267,20 +269,33 @@ class ConversaitonSerializer(serializers.ModelSerializer):
             return None
         return ConnectionRequestSerializer(con,context=self.context).data if con else None
 
+    # def get_last_read_msg_id(self,obj):
+    #     current_user=self.context['request'].user
+    #     last_stat=obj.mssgconversation_reciept.filter(status__icontains='read',user=current_user).order_by('-timestamp').first()
+    #     if last_stat:
+    #         print(last_stat.message.text)
+    #     return last_stat.message.id if last_stat else 0
+
     def get_messages(self,obj):
         currentUser=self.context['request'].user
         messages=obj.conversation.all().order_by('-timestamp')[:50]
         return MessageSerializer(messages[::-1],many=True,context=self.context).data
-        # return [msg for msg in messages if msg['sender'] != currentUser and msg['content'] != 'New chat created.Send a message to continue...']
+        # return [msg for msg in messages if msg['sender'] != currentUser and msg['text'] != 'New chat created.Send a message to continue...']
         
     def get_current_user_id(self,obj):
         return self.context['request'].user.id
-    def get_last_mssg(self,obj):
+    def get_last_msg(self,obj):
         message=Message.objects.filter(conversation=obj).order_by('-timestamp')
         message=list(message)
-        return MessageSerializer(message[0],context=self.context).data if message else None
+        return MessageSerializer(message[0],context=self.context).data['text'] if message else None
+
     def get_recent_reaction(self,obj):
-        return MessageReaction.objects.filter(conversation=obj).values_list('reaction','created_at').order_by('-created_at').first()
+         current_user=self.context['request'].user
+         reaction=MessageReaction.objects.filter(conversation=obj).order_by('-created_at').first()
+         if reaction:
+             return f"{'you' if current_user == reaction.user else reaction.user} reacted {reaction.reaction} to {reaction.message.text}"
+         return None
+
     def get_all_participants(self,obj):
         # current_user=self.context['request'].user
         other_users=obj.participants.all()

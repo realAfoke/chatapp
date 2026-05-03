@@ -10,31 +10,39 @@ import { generateRandomColors } from "../utils";
 import { useAuth } from "../routes/context";
 import { useLoaderData } from "react-router-dom";
 import { normalise } from "../utils/chatUtil";
-import { useConversationHooke } from "../hooks/conversationHooks";
 import { useParams, useLocation } from "react-router-dom";
-
+import { getDb } from "../utils";
+import { useConversation } from "../hooks/conversationHook";
 
 
 export default function ConversationsLayOut() {
-  const location = useLocation()
   const appData = useLoaderData();
+  let [indexedDB, setIndexedDB] = useState(null)
   const { chatId } = useParams()
   const [showProfile, setShowProfile] = useState(false)
   const { conversationMessages, fullConversation } = useMemo(() => normalise(appData[0]), [appData]);
-  const { user, userConversations, setUserConversations, setMessages, typing, connections, token, setUserStatus, userStatusRef, setCurrentChat, setTyping } = useAuth()
-  const generalSocket = useRef(null);
+  const { user, userConversations, setUserConversations, setMessages, typing, connections, token, setUserStatus, userStatusRef, setCurrentChat, setTyping, chatWs } = useAuth()
+  const [localMessage, setLocalMessage] = useState([])
 
   useEffect(() => {
     setUserConversations((prev) => ({ ...prev, ...fullConversation }))
   }, [fullConversation])
 
+  useEffect(() => {
+    (async () => {
+      const db = await getDb()
+      setIndexedDB(db)
+    })()
+  }, [])
 
   useEffect(() => {
     setMessages((prev) => ({ ...prev, ...conversationMessages }))
   }, [conversationMessages])
 
   const [hideAddNewChat, setHideAddNewChat] = useState(true);
-  useConversationHooke(user, token, setUserConversations, setMessages, setUserStatus, userStatusRef, generalSocket)
+  // useConversationHooke(user, token, setUserConversations, setMessages, setUserStatus, userStatusRef, generalSocket)
+
+  useConversation(user, setMessages, setUserConversations, chatId, token, chatWs, indexedDB, setLocalMessage)
 
   const conversations = userConversations.ordering?.map((convoId) => {
     const mainConversation = userConversations.conversations?.[convoId]
@@ -46,7 +54,7 @@ export default function ConversationsLayOut() {
     )
   })
   return (
-    <div className="relative flex overflow-hidden h-screen flex-col lg:flex-row gap-1">
+    <div className="relative flex overflow-hidden h-screen flex-col md:flex-row lg:flex-row gap-1">
       <div className={` ${chatId || showProfile ? 'hidden md:flex md:flex-col lg:flex' : 'flex flex-col'}`}>
         <Menu handleProfile={setShowProfile} />
         <div className="p-2">
@@ -84,14 +92,14 @@ export default function ConversationsLayOut() {
         </ul>
       </div>
       <div className="flex-1">
-        <Outlet context={{ generalSocket, setHideAddNewChat }} />
+        <Outlet context={{ setHideAddNewChat, chatId, indexedDB }} />
       </div>
     </div >
   )
 }
 
 
-export function Convo({ conversation, otherUser, setCurrentChat }) {
+export function Convo({ conversation, otherUser }) {
   const lastMssg = conversation.lastMssg;
   const mssgTime = (timestamp) => {
     const mssgDate = new Date(timestamp);
@@ -112,7 +120,7 @@ export function Convo({ conversation, otherUser, setCurrentChat }) {
   const bgColor = generateRandomColors();
   return (
     <Link
-      to={`chat/${conversation?.id}`}
+      to={`chat/${conversation?.id}`} replace
 
       className="flex items-center gap-2 my-5"
     >
@@ -140,7 +148,7 @@ export function Convo({ conversation, otherUser, setCurrentChat }) {
           {conversation?.typing?.isTyping ? (
             <TypingIdicator />
           ) : (
-            <p className="text-gray-500 truncate w-60 text-xs md:text-sm lg:text-sm">{lastMssg?.content}</p>
+            <p className="text-gray-500 truncate w-60 text-xs md:text-sm lg:text-sm">{conversation.lastInteraction === 'text' ? conversation?.lastMsg : conversation?.recentReaction}</p>
           )}
         </div>
         <div className="flex flex-col items-end gap-2">

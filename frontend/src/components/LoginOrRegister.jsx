@@ -1,14 +1,15 @@
-import { useLocation, Navigate } from "react-router-dom";
+import { useLocation, useOutletContext } from "react-router-dom";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../utils";
 import { refreshTokenScheduler } from "../utils";
 import { useAuth } from "../routes/context"
+import axios from "axios";
 
 
 export default function LoginOrRegister() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { errorLoader, setErrorLoader, setProgress } = useOutletContext()
   const [pageData, setPageData] = useState({ error: false, loader: false });
   const fieldName = location.state
     ? Object.keys(location.state)[0]
@@ -21,31 +22,34 @@ export default function LoginOrRegister() {
   });
   const path = location.pathname.split("/").filter((p) => p != "");
   const { setAuth } = useAuth()
+
+
   async function createAccount() {
+    setErrorLoader((prev) => ({ ...prev, loader: true }))
+
     try {
       const requestBody = { ...userData };
       delete requestBody.confirmPassword;
-      await api.post("api/auth/register/", requestBody);
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register/`, requestBody);
       await loginHandler()
     } catch (error) {
-      conseole.error('ERROR:', error)
+      setErrorLoader((prev) => ({ ...prev, loader: false, error: error.response.data.detail }))
       console.error(error?.response);
-      const { data } = error?.response;
-      setPageData((prev) => ({
-        ...prev,
-        error: data.detail,
-        loader: false,
-      }));
     }
   }
 
 
   async function loginHandler() {
     try {
-      const login = await api.post("api/auth/login/", {
+      if (!errorLoader.error) {
+        setErrorLoader((prev) => ({ ...prev, loader: true }))
+      }
+      const login = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login/`, {
         username: userData[fieldName],
         password: userData.password,
       });
+      setProgress(100)
+      setErrorLoader((prev) => ({ ...prev, loader: false }))
       localStorage.setItem('access', login.data.access)
       localStorage.setItem('refresh', login.data.refresh)
       //const authUser = await api.get('api/me/')
@@ -53,14 +57,16 @@ export default function LoginOrRegister() {
       refreshTokenScheduler('start')
       navigate("/conversations", { replace: true });
     } catch (error) {
-      console.error('ERROR:', error)
+      setErrorLoader((prev) => ({ ...prev, loader: false, error: error.response.data.detail }))
       console.error(error.response);
-      const data = error.response;
-      setPageData((prev) => ({
-        ...prev,
-        error: data.detail,
-        loader: false,
-      }));
+
+      // setPageData((prev) => ({
+      //   ...prev,
+      //   error: data.detail,
+      //   loader: false,
+      // }));
+    } finally {
+      setProgress(0)
     }
   }
   return (

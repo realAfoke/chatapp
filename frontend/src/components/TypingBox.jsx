@@ -2,24 +2,28 @@ import { httpSend, wssSend } from "../utils/chatUtil";
 import attachmentIcon from "../assets/icons/attachment-icon.svg";
 import sendButton from "../assets/icons/send-button.svg";
 import { useLocation } from "react-router-dom";
+import { useAuth } from "../routes/context";
 
 export function TypingComponent({
   handleAttachment,
-  handleUserContent,
-  userContent,
-  socketChat,
+  handleOutGoingMessage,
+  outGoingMessage,
+  setMessages,
+  conversation,
+  setUserConversations,
 }) {
   const location = useLocation();
+  const { chatWs } = useAuth()
   const conversationId = location.pathname.split("/").filter((p) => p != "")[2];
 
   return (
     <div
-      className={`${userContent.preview ? "py-4" : ""} flex justify-between items-center my-2 gap-2 relative`}
+      className={`${outGoingMessage.preview ? "py-4" : ""} flex justify-between items-center my-2 gap-2 relative`}
     >
       <span className="">
         <img
           src={attachmentIcon}
-          className={`${userContent.preview ? "hidden" : "block"} w-8 h-8`}
+          className={`${outGoingMessage.preview ? "hidden" : "block"} w-8 h-8`}
           alt=""
           onClick={() => handleAttachment((prev) => !prev)}
         />
@@ -27,39 +31,48 @@ export function TypingComponent({
       <input
         type="text"
         name="typingBox"
-        value={userContent.content}
+        value={outGoingMessage.text}
         onChange={(e) => {
-          handleUserContent((prev) => ({
+          handleOutGoingMessage((prev) => ({
             ...prev,
-            content: e.target.value,
+            text: e.target.value,
             // msgId: message[message.length - 1]?.id || 0,
-            isTyping: true,
+            // isTyping: true,
           }));
         }}
         onBlur={() =>
-          handleUserContent((prev) => ({
+          handleOutGoingMessage((prev) => ({
             ...prev,
-            isTyping: false,
-            content: prev.content,
+            // isTyping: false,
+            text: prev.text,
           }))
         }
         id="typingBox"
-        className={`${userContent.preview ? "text-white ring-white" : "text-black ring-black"} rounded-[10px] p-3 outline-none flex-2 h-10 ring`}
+        className={`${outGoingMessage.preview ? "text-white ring-white" : "text-black ring-black"} rounded-[10px] p-3 outline-none flex-2 h-10 ring`}
       />
       <button
         onClick={async () => {
-          if (userContent.preview) {
+          if (outGoingMessage.preview) {
             await httpSend(
-              userContent,
+              outGoingMessage,
               conversationId,
-              handleUserContent,
-              socketChat,
+              handleOutGoingMessage,
+              wss,
             );
           } else {
+
+            console.log('clicked!!!')
+            const content = { ...outGoingMessage }
+            content.clientId = crypto.randomUUID()
+            content.createdAt = Date.now()
+            content.status = 'pending'
             await wssSend({
-              ref: socketChat,
-              userContent: userContent,
-              setUserContent: handleUserContent,
+              ref: chatWs,
+              content: content,
+              setOutGoingMessage: handleOutGoingMessage,
+              setMessages: setMessages,
+              conversation: conversation,
+              setConversation: setUserConversations
             });
           }
         }}

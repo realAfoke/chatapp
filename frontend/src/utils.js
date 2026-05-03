@@ -126,3 +126,64 @@ export function refreshTokenScheduler(action = 'start') {
 
 
 refreshTokenScheduler()
+
+
+let db = null
+let queue = []
+let isOpening = false
+
+export function getDb() {
+  return new Promise((resolve, reject) => {
+    if (db) {
+      resolve(db)
+      return
+    }
+    queue.push({ resolve, reject })
+    if (isOpening) return
+    isOpening = true
+
+    const request = indexedDB.open('CHATDB', 1)
+    request.onupgradeneeded = (event) => {
+      const database = event.target.result
+      if (!database.objectStoreNames.contains('messages')) {
+        const store = database.createObjectStore('messages', { keyPath: 'clientId' })
+        store.createIndex('conversation_createdAt', ['conversation', 'createdAt'])
+
+      }
+    }
+    request.onsuccess = (event) => {
+      db = event.target.result
+      queue.forEach((prom) => prom.resolve(db))
+      queue = []
+    }
+    request.onerror = () => {
+      console.log(request.error)
+      queue.forEach((prom) => prom.reject(request.error))
+      queue = []
+    }
+    return db
+  })
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

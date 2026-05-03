@@ -1,264 +1,227 @@
 import { useEffect } from "react";
-// import { fetchMessages } from "../utils/chatUtil";
+import { getLocalMsg } from "../utils/chatUtil";
 
-//clean up image preview
+
 export function closeMemoryLeaks(userContent) {
-  useEffect(() => {
-    return () => {
-      if (userContent.preview) {
-        URL.revokeObjectURL(userContent.preview);
-      }
-    };
-  }, [userContent.preview]);
+	useEffect(() => {
+		return () => {
+			if (userContent.preview) {
+				URL.revokeObjectURL(userContent.preview);
+			}
+		};
+	}, [userContent.preview]);
 }
 
 export function useChat(
-  chatId,
-  token,
-  otherUser,
-  socketChat,
-  generalSocket,
-  messages,
-  setMessages,
-  currentConvo,
-  setConversations,
-  userStatus,
-  setTyping,
-  userContent,
-  setUserContent,
-  bottomRef
+	user,
+	otherUser,
+	convoMessages,
+	setMessage,
+	conversation,
+	setConversation,
+	outGoingMessage,
+	setOutGoingMessage,
+	chatWs,
+	conversationId,
+	receiverId,
+	bottomRef,
+	db
+
 ) {
-  useEffect(() => {
-    setUserContent((prev) => ({
-      ...prev,
-      userId: otherUser?.id,
-    }));
-  }, [userStatus, otherUser]);
+	useEffect(() => {
+		if (conversation?.unreadMssgCount) {
+			const sock = chatWs.current
+			if (sock && sock.readyState === WebSocket.OPEN) {
+				const lastMsg = convoMessages[convoMessages.length - 1]
+				sock.send(JSON.stringify({ 'conversation': conversationId, lastReadMsgId: lastMsg?.msgId ?? 0, receiverId: receiverId }))
+
+				setConversation((prev) => {
+					const { conversations } = prev
+					const mainConversation = conversations?.[outGoingMessage?.conversation]
+					return {
+						...prev,
+						conversations: { ...conversations, [outGoingMessage?.conversation]: { ...(mainConversation ?? {}), unreadMssgCount: 0 } }
+					}
+				})
+				console.log('all message marked as read')
+			}
+		}
+	}, [conversation.unreadMssgCount])
+
+	useEffect(() => {
+		if (db) {
+
+			getLocalMsg(db, conversationId).then((msg) => {
+				const localMsgIds = msg.map(obj => obj.clientId)
+				setConversation((prev) => {
+					const { conversations } = prev
+					const mainConversation = conversations?.[conversationId]
+					const { messages } = mainConversation
+					const serverMsgId = new Set(convoMessages.map(obj => obj.clientId))
+					const ex = new Set([...messages, ...localMsgIds.filter(id => !serverMsgId.has(id))])
+					return {
+						...prev,
+						conversations: {
+							...conversations,
+							[conversationId]: {
+								...mainConversation, messages: [...ex]
+							}
+						}
+					}
+				})
+				setMessage((prev) => {
+					const idsList = Object.values(prev)
+					const serMsgIds = new Set(idsList.map(id => id.clientId))
+					const newMsg = [...msg.filter(obj => !serMsgIds.has(obj.clientId))]
+					const localMsg = Object.fromEntries(newMsg.map(obj => [obj.clientId, obj]))
+					return {
+						...prev,
+						...localMsg
+					}
+				})
+			}).catch((err) => {
+				console.error(err)
+			})
+		}
+
+	}, [db])
+	useEffect(() => {
+		if (bottomRef.current) {
+			bottomRef.current?.scrollIntoView();
+		}
+	}, [convoMessages]);
 
 
-  useEffect(() => {
-    const ws = socketChat.current
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      const content = {
-        isTyping: userContent.isTyping,
-        whoIsTyping: userContent.userId  // this is bit flawed is kinda the opposite or something
-      }
-      ws.send(JSON.stringify(content))
-    }
-  }, [userContent.content, userContent.isTyping])
-  //
-  useEffect(() => {
-    if (!chatId) return;
-    const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}ws/chat/${chatId}/?token=${token}`);
-    ws.onopen = () => console.log("websocket connected successfully")
+	useEffect(() => {
+		const socket = chatWs.current
+		if (outGoingMessage.text) {
+			if (socket && socket.readyState === WebSocket.OPEN) {
+				socket.send(JSON.stringify({ isTyping: outGoingMessage.text.length > 0 ? true : false, conversation: conversationId, receiverId: receiverId }))
+			}
+		}
+	}, [outGoingMessage?.text])
 
-    socketChat.current = ws;
 
-    ws.onmessage = (e) => {
-      let data = JSON.parse(e.data);
+	useEffect(() => {
+		setOutGoingMessage((prev) => ({
+			...prev, receiverId: otherUser?.id, sender: Number(user?.id)
+		}))
+	}, [otherUser])
 
-      if (data.status === "Read" || Array.isArray(data)) return;
-      if (data.status === "active") {
-        let { status, ...saferData } = data;
-        setTyping(saferData);
-        return;
-      }
-      if (data.status === "active" && !data.isTyping) {
-        const { status, ...saferData } = data;
-        setTyping(saferData);
-        return;
-      }
 
-      if (data.action === "update msg") {
-        setConversations((prev) => {
-          const { conversations, ordering } = prev;
-
-          const currentConvo = conversations[chatId];
-          return {
-            ...prev,
-            conversations: {
-              ...prev.conversations,
-              [chatId]: { ...currentConvo, unreadMssgCount: 0 },
-            },
-            ordering: [...new Set([...ordering, Number(chatId)])],
-          };
-        });
-        setMessages((prev) => {
-          const updatedMessage = data.updatedMessages.reduce((acc, msgId) => {
-            const msg = prev[msgId];
-            if (!msg) return msg;
-            acc[msgId] = {
-              ...msg,
-              readStatus: { ...(msg?.readStatus ?? {}), [data.reader]: "Read" },
-            };
-            return acc;
-          }, {});
-          return { ...prev, ...updatedMessage };
-        });
-        return;
-      }
-      setConversations((prev) => {
-        const { conversations, ordering } = prev;
-        const activeChat = conversations[chatId];
-        if (!activeChat) return prev;
-        const { readStatus, ...saferData } = data;
-        //set typing
-        if (data.whoIsTyping) {
-          return {
-            ...prev,
-            conversations: {
-              ...prev.conversations,
-              [chatId]: {
-                ...activeChat,
-                typing: { ...activeChat?.typing, ...saferData },
-              },
-            },
-          };
-        }
-
-        //set reaction
-        if (saferData.reaction && !saferData?.["currentUserId"]) {
-          return {
-            ...prev,
-            conversations: {
-              ...prev.conversations,
-              [chatId]: {
-                ...activeChat,
-                lastMssg: {
-                  ...activeChat.lastMssg,
-                  content: `${data.user !== otherUser.id ? "You" : otherUser.username} reacted ${saferData.reaction} to ${saferData.content}`,
-                },
-              },
-            },
-            ordering: [...new Set([Number(chatId), ...ordering])],
-          };
-        }
-        return {
-          ...prev,
-          conversations: {
-            ...prev.conversations,
-            [chatId]: {
-              ...activeChat,
-              messages: [...activeChat.messages, saferData.id],
-              lastMssg: { ...activeChat?.lastMssg, ...saferData },
-            },
-          },
-          ordering: [...new Set([Number(chatId), ...ordering])],
-        };
-      });
-      setMessages((prev) => {
-        if (data?.reaction && !data?.["currentUserId"]) {
-          const check = {
-            ...prev,
-            [data.message]: {
-              ...prev[data.message],
-              reaction: [...(prev[data.message].reaction ?? []), data.reaction],
-            },
-          };
-          return check;
-        }
-
-        if (data?.content) {
-          let { reader, ...msgData } = data;
-          let readStatus = null
-          if (userStatus.current.length > 1) {
-            if (msgData?.readStatus?.[reader] === 'Inactive') {
-              readStatus = 'Delivered'
-            } else {
-              readStatus = 'Read'
-            }
-          } else {
-            readStatus = 'Delivered'
-          }
-          msgData = {
-            ...msgData,
-            readStatus: {
-              ...msgData.readStatus,
-              [reader]: readStatus
-            },
-          };
-          return {
-            ...prev,
-            [msgData.id]: { ...(prev[msgData.id] || {}), ...msgData },
-          };
-        }
-        return prev;
-      });
-      if (data?.readStatus && userStatus.current.length > 1) {
-        const socket = generalSocket.current;
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          const offline = { offline: data, conversationId: chatId };
-
-          const newConvo = currentConvo
-          if (newConvo?.messages?.length === 0) {
-            offline["convo"] = newConvo;
-          }
-          socket.send(JSON.stringify(offline));
-        }
-        return;
-      }
-    };
-    socketChat.current = ws;
-    ws.onclose = () => console.log("websocket connection close!!!");
-
-    return () => ws.close();
-  }, [chatId, userStatus.current, otherUser]);
-  //
-  useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current?.scrollIntoView();
-    }
-  }, [messages]);
-
-  //
-
-  // useEffect(() => {
-  //   setMessages(prevMessage);
-  // }, [prevMessage]);
-
-  // useEffect(() => {
-  //   revalidate();
-  // }, [userStatus]);
+	// useEffect(() => {
+	// 	const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}ws/users/?token=${token}`);
+	// 	generalSocket.current = ws;
+	// 	// ws.onopen = () => console.log("user is online");
+	// 	ws.onmessage = (e) => {
+	// 		let data = JSON.parse(e.data);
+	//
+	// 		if (data?.offline) {
+	// 			let saferData = { ...data.offline };
+	// 			setUserConversations((prev) => {
+	// 				const { conversations, ordering } = prev;
+	// 				let chatId = data.conversationId;
+	// 				let convo = conversations[chatId];
+	// 				let updatedConvo = (data.convo ??= {});
+	//
+	// 				// const convo = (data.convo ??= conversations[chatId]);
+	//
+	// 				//set typing
+	// 				if (saferData.whoIsTyping) {
+	// 					if (
+	// 						Object.keys(convo || {}).length === 0 ||
+	// 						convo?.typing === saferData.isTyping
+	// 					)
+	// 						return prev;
+	// 					return {
+	// 						...prev,
+	// 						conversations: {
+	// 							...prev.conversations,
+	// 							[chatId]: {
+	// 								...convo,
+	// 								typing: { ...convo?.typing, ...saferData },
+	// 							},
+	// 						},
+	// 					};
+	// 				}
+	// 				//set reaction
+	// 				if (saferData.reaction && !saferData?.["currentUserId"]) {
+	// 					const reaction = convo.lastMssg.content;
+	// 					if (reaction.includes(saferData.reaction)) return prev;
+	// 					const otherUser = convo.allParticipants.filter(
+	// 						(participant) => participant.id !== user.id,
+	// 					)[0];
+	// 					return {
+	// 						...prev,
+	// 						conversations: {
+	// 							...prev.conversations,
+	// 							[chatId]: {
+	// 								...convo,
+	// 								lastMssg: {
+	// 									...convo.lastMssg,
+	// 									content: `${saferData.user !== otherUser.id ? "You" : otherUser.username} reacted ${saferData.reaction} to ${saferData.content}`,
+	// 								},
+	// 								unreadMssgCount: (convo.unreadMsgCount ??= 0 + 1),
+	// 							},
+	// 						},
+	// 						ordering: [...new Set([Number(chatId), ...ordering])],
+	// 					};
+	// 				}
+	// 				if (convo && convo?.messages?.includes(Number(saferData.id)))
+	// 					return prev;
+	// 				const onk = {
+	// 					...prev,
+	// 					conversations: {
+	// 						...prev.conversations,
+	// 						[chatId]: {
+	// 							...(convo ?? updatedConvo),
+	// 							messages: [...(convo?.messages ?? []), Number(saferData.id)],
+	// 							lastMssg: { ...(convo?.lastMssg ?? {}), ...saferData },
+	// 							unreadMssgCount: (convo?.unreadMssgCount ?? 0) + 1,
+	// 						},
+	// 					},
+	// 					ordering: [...new Set([Number(chatId), ...ordering])],
+	// 				};
+	// 				return onk;
+	// 			});
+	// 			if (saferData.whoIsTyping) return;
+	// 			setMessages((prev) => {
+	// 				if (data?.reaction && (!"currentUserId") in data) {
+	// 					const reaction = prev[saferData.message].reaction ?? [];
+	// 					if (reaction.includes(saferData.reaction)) return prev;
+	//
+	// 					return {
+	// 						...prev,
+	// 						[saferData.message]: {
+	// 							...prev[saferData.message],
+	// 							reaction: [
+	// 								...(prev[saferData.message].reaction ?? []),
+	// 								saferData.reaction,
+	// 							],
+	// 						},
+	// 					};
+	// 				}
+	//
+	// 				if (prev[saferData.id]) return prev;
+	// 				let { reader, ...mainData } = saferData;
+	// 				mainData = {
+	// 					...mainData,
+	// 					readStatus: {
+	// 						...mainData.readStatus,
+	// 						[reader]: "Delivered",
+	// 					},
+	// 				};
+	// 				return {
+	// 					...prev,
+	// 					[mainData.id]: { ...(prev[mainData.id] || {}), ...mainData },
+	// 				};
+	// 			});
+	// 		} else {
+	// 			setUserStatus([...new Set([...data])]);
+	// 			userStatusRef.current = [...new Set([...data])];
+	// 		}
+	// 	};
+	//
+	// 	return () => (ws.close = () => console.log("connection close"));
+	// }, [user]);
 }
-// export function useChatHooks(
-//   conversation,
-//   conversationId,
-//   setChat,
-//   currentUserId,
-//   messages,
-//   setMessages,
-//   userStatus,
-//   userContent,
-//   setUserContent,
-//   bottomRef,
-//   socketChat,
-//   otherUser,
-// ) {
-//
-//   useEffect(() => {
-//     setUserContent((prev) => ({
-//       ...prev,
-//       userId: otherUser?.id,
-//     }));
-//   }, [userStatus]);
-//
-//   useEffect(() => {
-//     const socket = socketChat.current;
-//     if (socket && socket.readyState === WebSocket.OPEN) {
-//       const content = {
-//         isTyping: userContent.isTyping,
-//         whoIsTyping: userContent.userId,
-//       };
-//       socket.send(JSON.stringify(content));
-//     }
-//   }, [userContent.content, userContent.isTyping]);
-//
-//   useEffect(() => {
-//     setChat(conversationId);
-//   }, [conversationId]);
-//   useEffect(() => {
-//     if (bottomRef.current) {
-//       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-//     }
-//   }, [bottomRef]);
-// }

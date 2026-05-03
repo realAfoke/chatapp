@@ -76,6 +76,8 @@ class Conversation(models.Model):
     admin=models.ManyToManyField(User,related_name='admin')
     super_admin=models.ForeignKey(User,related_name='super_admin',on_delete=models.SET_NULL,null=True,blank=True)
     participants=models.ManyToManyField(User,related_name='conversation_paritcipant')
+    last_read_msg_id=models.ForeignKey('Message',related_name='lst_read_msg_id',on_delete=models.CASCADE,null=True,blank=True)
+    last_interaction=models.CharField(max_length=200,null=True,blank=True,default='text')
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
 
@@ -105,10 +107,11 @@ class Conversation(models.Model):
 
 class Message(models.Model):
     sender=models.ForeignKey(User,related_name='message',on_delete=models.CASCADE)
-    content=models.TextField()
+    text=models.TextField()
+    client_id=models.UUIDField(editable=False,null=True,blank=True)
     conversation=models.ForeignKey(Conversation,related_name='conversation',on_delete=models.CASCADE)
-    # attachment=models.FileField(upload_to='message_attachment/',null=True,blank=True)
-    attachment=CloudinaryField('attachment',null=True,blank=True,folder='message_attachment')
+    attachment=models.FileField(upload_to='message_attachment/',null=True,blank=True)
+    # attachment=CloudinaryField('attachment',null=True,blank=True,folder='message_attachment')
     attachment_type=models.CharField(max_length=20,null=True,blank=True)
     #dev field for media remember to remove later and switch to cloudinary field
     # audio=models.FileField(upload_to='audio/',validators=[FileExtensionValidator(allowed_extensions=['mp3','wav'])],null=True,blank=True)
@@ -121,7 +124,7 @@ class Message(models.Model):
         db_table='message'
     
     def __str__(self):
-        return f"{self.sender.username} sent {self.content}"
+        return f"{self.sender.username} sent {self.text}"
     
 
 class MessageReciept(models.Model):
@@ -129,14 +132,14 @@ class MessageReciept(models.Model):
     message=models.ForeignKey(Message,related_name='message_reciept',on_delete=models.CASCADE)
     conversation=models.ForeignKey(Conversation,related_name='mssgconversation_reciept',on_delete=models.CASCADE)
     status=models.CharField(max_length=200,choices=[('delivered','Delivered'),('read','Read'),('inactive','Inactive')])
-    time_stamp=models.DateTimeField(auto_now_add=True)
+    timestamp=models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table='message_reciept'
         unique_together=('message','user')
 
     def __str__(self):
-        return f"{self.user.username}-{self.message.id}-{self.status}"
+        return f"{self.user_id}-{self.message_id}-{self.status}"
     
 
 class MessageReaction(models.Model):

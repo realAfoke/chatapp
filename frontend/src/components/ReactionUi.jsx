@@ -4,43 +4,46 @@ import replyIcon from "../assets/icons/reply.svg";
 import deleteIcon from "../assets/icons/delete.svg";
 import copyIcon from "../assets/icons/copy.svg";
 import forwardIcon from "../assets/icons/forward.svg";
+import { wssSend } from "../utils/chatUtil";
+import { useAuth } from "../routes/context";
 
 export default function ReactionUi({
   message,
   event,
   setShowReactionUi,
-  socketChat,
-  userContent
+  receiverId
   // conversationId,
 }) {
+  const { user, chatWs, setMessages, setUserConversations } = useAuth()
   const [reaction, setReaction] = useState(null);
   useEffect(() => {
-    window.addEventListener("click", (e) => {
+    window.addEventListener("click", () => {
       setShowReactionUi({ obj: "", state: false, event: "" });
     });
   }, []);
 
   function sendReaction(selectedReaction) {
-    const socket = socketChat.current;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(
-        JSON.stringify({
-          message: message.id,
-          reaction: selectedReaction,
-          content: message.content,
-          userId: userContent?.userId
-        }),
-      );
+    const content = {
+      msgId: message.id,
+      reacter: user?.username,
+      reaction: selectedReaction,
+      content: message.text,
+      conversation: message.conversation,
+      receiverId: receiverId
     }
+
+    wssSend({ ref: chatWs, content: content, setMessages: setMessages, setConversation: setUserConversations })
   }
-  const getPosition = (event) => {
-    if (event.touches && event.touches.length > 0) {
+  const getPosition = (e) => {
+    const el = e.target
+    const pos = el.getBoundingClientRect()
+    if (e.touches && e.touches.length > 0) {
       return {
-        top: event.touches[0].clientY,
+        top: e.touches[0].clientY,
       };
     } else {
       return {
-        top: event.clientY,
+        top: e.clientY,
       };
     }
   };
