@@ -28,7 +28,6 @@ export default function ReactionUi({
       reacter: user?.username,
       reaction: selectedReaction,
       content: message.text,
-      conversation: message.conversation,
       receiverId: receiverId
     }
 

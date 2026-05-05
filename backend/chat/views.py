@@ -20,6 +20,8 @@ import random
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.exceptions import TokenError,InvalidToken
 from pprint import pprint
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 # redis_client=redis.Redis(host='localhost',port=6379,decode_responses=True)
 # print('redis client:',redis_client)
@@ -309,12 +311,30 @@ class FileUploadView(APIView):
         current_user=self.request.user
         if not current_user in set(self.conversation.participants.all()):
             raise PermissionDenied('you\re not part of this conversation')
-        self.data=self.request.data.copy()
-        self.data['conversation']=self.conversation_id
-        serializer=MessageSerializer(data=self.data,context={'request':self.request})
+        data=self.request.data.copy()
+        for k,v in data.copy().items():
+            if isinstance(v,list):
+                data[k]=v[0]
+        data['status']='sent'
+
+        serializer=MessageSerializer(data=data,context={'request':self.request})
         if serializer.is_valid(raise_exception=True):
-            serializer.save(sender=self.request.user,content=self.data['content'])
-            # print('data:',serializer.data)
+            serializer.save(sender=self.request.user,text=data.get('text',''),conversation=self.conversation)
+            message_data=serializer.data
+            message_data.pop('reaction',None)
+            channel_layer=get_channel_layer()
+            receiver_group=f'user_{int(data.get('receiver_id'))}'
+            sender_group=f'user_{self.request.user.id}'
+            async_to_sync(channel_layer.group_send)(receiver_group,{'type':'chat.message','message':message_data})
+            server_payload={
+                    'response':'server',
+                    'clientId':message_data.get('client_id'),
+                    'status':message_data.get('status'),
+                    'createdAt':data.get('created_at'),
+                    'msgId':message_data.get('id')
+                    }
+            async_to_sync(channel_layer.group_send)(sender_group,{'type':'chat.message','message':server_payload})
+
             return Response(serializer.data)
             
         return Response(status=204)

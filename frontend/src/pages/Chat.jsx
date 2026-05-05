@@ -67,8 +67,6 @@ export default function Chat() {
   const bottomRef = useRef(null);
   const [outGoingMessage, setOutGoingMessage] = useState({
     receiverId: null,
-    sender: null,
-    conversation: chatId,
     // type: null,
     // isTyping: null,
     text: "",
@@ -285,19 +283,15 @@ export default function Chat() {
         handleOutGoingMessage={setOutGoingMessage}
         outGoingMessage={outGoingMessage}
         setMessages={setMessages}
-        conversation={conversation}
         setUserConversations={setUserConversations}
       />
-      {attachment && <AttachmentBox setOutGoingMessage={setOutGoingMessage()} />}
+      {attachment && <AttachmentBox setOutGoingMessage={setOutGoingMessage} />}
 
       <Preview
         handleAttachment={setAttachment}
         handleOutGoingMessage={setOutGoingMessage}
         outGoingMessage={outGoingMessage}
-        message={conversationMessages}
         setMessages={setMessages}
-        chatId={chatId}
-        conversation={conversation}
         setUserConversations={setUserConversations}
 
       />

@@ -4,17 +4,14 @@ export default function Preview({
   handleAttachment,
   handleOutGoingMessage,
   outGoingMessage,
-  handleWsSend,
-  message,
   setMessages,
-  conversationId,
-  socketChat,
+  setUserConversations
 }) {
   return (
     <div
       className={`${outGoingMessage.preview ? "fixed top-0 left-0 block h-screen  w-full" : "hidden"} backdrop-blur-sm bg-[rgba(0,0,0,0.8)] flex flex-col overflow-hidden`}
     >
-      <div className=" max-h-[calc(100%-10%)] min-h-[calc(100%-10%)] flex flex-col justify-center">
+      <div className="flex-1 flex flex-col justify-center">
         <img
           src={close}
           className="w-10 h-10 outline-none text-[20px] font-bold absolute top-0 right-0 text-white m-4"
@@ -22,9 +19,9 @@ export default function Preview({
             handleOutGoingMessage((prev) => ({ ...prev, preview: null, attachment: null, type: null }))
           }
         ></img>
-        {outGoingMessage.preview && outGoingMessage.type?.includes("video") ? (
-          <video src={outGoingMessage.preview} controls />
-        ) : outGoingMessage.preview && outGoingMessage.type?.includes("audio") ? (
+        {outGoingMessage.preview && outGoingMessage.attachmentType?.includes("video") ? (
+          <video src={outGoingMessage.preview} className="" controls />
+        ) : outGoingMessage.preview && outGoingMessage.attachmentType?.includes("audio") ? (
           <audio src={outGoingMessage.preview} controls />
         ) : (
           <img
@@ -35,14 +32,11 @@ export default function Preview({
         )}
       </div>
       <TypingComponent
-        handleOutGoingMessage={handleOutGoingMessage}
         handleAttachment={handleAttachment}
+        handleOutGoingMessage={handleOutGoingMessage}
         outGoingMessage={outGoingMessage}
-        handleWsSend={handleWsSend}
-        message={message}
         setMessages={setMessages}
-        conversationId={conversationId}
-        socketChat={socketChat}
+        setUserConversations={setUserConversations}
       />
     </div>
   );

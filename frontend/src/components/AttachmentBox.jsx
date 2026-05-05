@@ -1,7 +1,7 @@
 import Camera from "../assets/icons/camera2.svg";
 import { handeSelectFile, handleImageClick } from "../utils/chatUtil";
 import { useRef } from "react";
-export default function AttachmentBox({ setUserContent }) {
+export default function AttachmentBox({ setOutGoingMessage }) {
   const fileRef = useRef(null);
 
   return (
@@ -22,7 +22,7 @@ export default function AttachmentBox({ setUserContent }) {
           id=""
           ref={fileRef}
           className="invisible"
-          onChange={(e) => handeSelectFile(e, setUserContent)}
+          onChange={(e) => handeSelectFile(e, setOutGoingMessage)}
         />
       </div>
     </div>

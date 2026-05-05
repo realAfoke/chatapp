@@ -174,7 +174,7 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model=Message
         fields=['id','client_id','sender','text','is_edited','status','timestamp','attachment','attachment_type','reaction']
-        read_only_fields=['sender','text','status','reaction']
+        read_only_fields=['sender','text','reaction']
 
     
     def create(self, validated_data):

@@ -31,7 +31,8 @@ export async function fetchMessages(conversationId) {
     return contents.data;
   } catch (error) { }
 }
-//
+
+
 // //handle media/files selection
 export function handeSelectFile(e, userInfo) {
   const file = e.target.files[0];
@@ -69,16 +70,52 @@ export async function simiulateWebsock(conversationId, setMessages) {
 // //send media or file messages
 export async function httpSend(
   content,
-  conversationId,
   setOutGoingMessage,
-  ref,
+  setMessages,
+  setConversation,
+  conversationId
 ) {
   try {
     const formData = new FormData();
     Object.entries(content).forEach(([key, value]) => {
-      if (key !== "type" && key !== "preview") formData.append(key, value);
-    });
-    const file = await api.post(
+      if (key !== 'preview' && key !== 'sender') {
+        formData.append(key, value)
+      }
+    })
+    content.conversation = conversationId
+    // await saveMessageLocally(contnt)
+    setConversation((prev) => {
+      const { conversations } = prev
+      const mainConversation = conversations?.[conversationId]
+      const { messages } = mainConversation
+
+      return {
+        ...prev,
+        conversations: {
+          ...prev.conversations,
+          [conversationId]: {
+            ...mainConversation, lastMsg: content.text, messages: [...messages, content.clientId],
+          }
+        }
+      }
+    })
+    //
+    setMessages((prev) => {
+      const msgId = content?.clientId ?? content?.msgId
+      return {
+        ...prev,
+        [msgId]: { ...prev?.[msgId] ?? {}, ...content }
+      }
+    })
+    setOutGoingMessage((prev) => (
+      {
+        ...prev,
+        text: "",
+        // preview: null,
+      }
+    ));
+
+    await api.post(
       `api/conversation/${conversationId}/file-upload/`,
       formData, {
       onUploadProgress: (progressEvent) => {
@@ -86,11 +123,6 @@ export async function httpSend(
       }
     }
     );
-    await wssSend({
-      ref: ref,
-      content: file.data,
-      setOutGoingMessage: setUserContent,
-    });
   } catch (error) {
     console.error(error);
   }
@@ -145,7 +177,7 @@ export async function wssSend({ ref, content, setOutGoingMessage, setMessages, s
 
     content.createdAt
     if (!Object.hasOwn(content, 'reaction')) {
-      saveMessageLocally(content)
+      await saveMessageLocally(content)
     }
     socket.send(JSON.stringify(content));
 

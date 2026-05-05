@@ -1,20 +1,18 @@
 import { httpSend, wssSend } from "../utils/chatUtil";
 import attachmentIcon from "../assets/icons/attachment-icon.svg";
 import sendButton from "../assets/icons/send-button.svg";
-import { useLocation } from "react-router-dom";
 import { useAuth } from "../routes/context";
+import { useParams } from "react-router-dom";
 
 export function TypingComponent({
   handleAttachment,
   handleOutGoingMessage,
   outGoingMessage,
   setMessages,
-  conversation,
   setUserConversations,
 }) {
-  const location = useLocation();
-  const { chatWs } = useAuth()
-  const conversationId = location.pathname.split("/").filter((p) => p != "")[2];
+  const { chatWs, user } = useAuth()
+  const { chatId } = useParams()
 
   return (
     <div
@@ -52,26 +50,28 @@ export function TypingComponent({
       />
       <button
         onClick={async () => {
+          const content = { ...outGoingMessage }
+          content.clientId = crypto.randomUUID()
+          content.createdAt = Date.now()
+          content.status = 'pending'
+          content.sender = user?.id
+
           if (outGoingMessage.preview) {
             await httpSend(
-              outGoingMessage,
-              conversationId,
+              content,
               handleOutGoingMessage,
-              wss,
+              setMessages,
+              setUserConversations,
+              chatId
             );
           } else {
 
-            console.log('clicked!!!')
-            const content = { ...outGoingMessage }
-            content.clientId = crypto.randomUUID()
-            content.createdAt = Date.now()
-            content.status = 'pending'
+            content.conversation = chatId
             await wssSend({
               ref: chatWs,
               content: content,
               setOutGoingMessage: handleOutGoingMessage,
               setMessages: setMessages,
-              conversation: conversation,
               setConversation: setUserConversations
             });
           }

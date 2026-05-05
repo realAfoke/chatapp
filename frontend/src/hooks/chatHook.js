@@ -2,14 +2,14 @@ import { useEffect } from "react";
 import { getLocalMsg } from "../utils/chatUtil";
 
 
-export function closeMemoryLeaks(userContent) {
+export function closeMemoryLeaks(outGoingMessage) {
 	useEffect(() => {
 		return () => {
-			if (userContent.preview) {
-				URL.revokeObjectURL(userContent.preview);
+			if (outGoingMessage.preview) {
+				URL.revokeObjectURL(outGoingMessage.preview);
 			}
 		};
-	}, [userContent.preview]);
+	}, [outGoingMessage?.preview]);
 }
 
 export function useChat(
@@ -104,7 +104,7 @@ export function useChat(
 
 	useEffect(() => {
 		setOutGoingMessage((prev) => ({
-			...prev, receiverId: otherUser?.id, sender: Number(user?.id)
+			...prev, receiverId: otherUser?.id
 		}))
 	}, [otherUser])
 

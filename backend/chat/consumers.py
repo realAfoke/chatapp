@@ -108,12 +108,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
                 return
 
-            db_data={'sender_id':data.get('sender'),'client_id':data.get('clientId'),'conversation_id':data.get('conversation'),'text':data.get('text')}
+            db_data={'sender':self.current_user,'client_id':data.get('clientId'),'conversation_id':data.get('conversation'),'text':data.pop('text')}
             db_msg=await self.save_mssg(db_data)
             data['msgId']=db_msg.id
             data['status']='sent'
             await self.channel_layer.group_send(group,{'type':'chat.message','message':data})
-            data.pop('text')
+            # data.pop('text')
             data['response']='server'
             await self.channel_layer.group_send(self.group_name,{'type':'chat.message','message':data})
             status={'user_id':receiver_id,'message':db_msg,'conversation_id':db_msg.conversation_id,'status':'sent'}
