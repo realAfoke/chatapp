@@ -5,7 +5,7 @@ export default function AttachmentBox({ setOutGoingMessage }) {
   const fileRef = useRef(null);
 
   return (
-    <div className="shadow-sm h-100 w-full transition-all">
+    <div className="mx-3 p-3 backdrop-blur-sm bg-[rgba(0,0,0,0.2)] rounded-lg">
       <div>
         <label>
           <img

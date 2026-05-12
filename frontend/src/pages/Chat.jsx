@@ -14,63 +14,43 @@ import goBack from "../assets/icons/go-back.svg";
 import { useAuth } from "../routes/context";
 import image from "../assets/images/file1.jpg"
 import { useChat } from "../hooks/chatHook";
+import { useParams } from "react-router-dom";
 
 
 export default function Chat() {
-  const { setHideAddNewChat, chatId, indexedDB
+  const { setHideAddNewChat, indexedDB
   } = useOutletContext()
   const { user, userConversations, setUserConversations, messages, setMessages, connections, setConnections, userStatus, chatWs } = useAuth()
-  const location = useLocation();
+  const { chatId } = useParams()
 
   const navigate = useNavigate();
-  const newConvo = location?.state?.newConvo ?? {};
 
 
-  const { conversations } = userConversations;
-  useEffect(() => {
-    if (conversations?.[chatId]) return;
-    setUserConversations((prev) => {
-      const { conversations, ordering } = prev;
-      const activeChat = conversations?.[chatId];
-      return {
-        ...prev,
-        conversations: {
-          ...conversations,
-          [chatId]: {
-            ...(activeChat ?? {}),
-            ...newConvo,
-            messages: [...(activeChat?.messages ?? [])],
-            lastMssg: { ...(activeChat?.lastMssg ?? {}), ...newConvo.lastMssg },
-          },
-        },
-        ordering: [...new Set([Number(chatId), ...ordering ?? []])],
-      };
-    });
-  });
+  const conversations = userConversations?.conversations ?? {};
+  const divRef = useRef(null)
+
+
   const [presser, setPresser] = useState(false)
-  const conversation = conversations?.[chatId] ?? newConvo;
+  const conversation = conversations?.[chatId] ?? {}
+
   const connectionRequest = conversation?.connectionRequest;
 
   const typing = conversation?.typing;
   const currentUserId = user?.id;
   const conversationMessages =
-    conversation?.messages?.map((mssgId) => messages[mssgId]) ?? [];
+    conversation?.messages?.map((msgId) => messages[msgId]) ?? [];
+
   const connectionIds = new Set(connections.map((con) => con.id));
   const [attachment, setAttachment] = useState(false);
-  const otherUser = conversation?.allParticipants?.filter(
-    (participant) => participant.id !== user.id,
-  )[0];
+  const otherUser = conversation?.otherUser ?? {}
   const isConnected = !connectionIds.has(otherUser?.id);
-  const isRequestd = currentUserId !== connectionRequest?.fromUserInfo?.id;
+  const isRequested = currentUserId !== connectionRequest?.fromUserInfo?.id;
   const connectionStatus = connectionRequest?.status === "pending";
   // debugger;
   const bottomRef = useRef(null);
   const [outGoingMessage, setOutGoingMessage] = useState({
     receiverId: null,
-    // type: null,
-    // isTyping: null,
     text: "",
-    // preview: null,
   });
 
   const [showReactionUi, setShowReactionUi] = useState({
@@ -79,11 +59,10 @@ export default function Chat() {
     event: "",
   });
 
-  useChat(user, otherUser, conversationMessages, setMessages, conversation, setUserConversations, outGoingMessage, setOutGoingMessage, chatWs, chatId, otherUser?.id, bottomRef, indexedDB)
+  useChat(otherUser, conversationMessages, conversation, setUserConversations, outGoingMessage, setOutGoingMessage, chatWs, chatId, bottomRef, indexedDB)
 
   closeMemoryLeaks(outGoingMessage);
   const bgColor = generateRandomColors();
-
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -95,6 +74,16 @@ export default function Chat() {
           alt=""
           onClick={() => {
             setHideAddNewChat(true)
+            if (typeof chatId !== 'number') {
+              setUserConversations((prev) => {
+                const { conversations, ordering } = prev
+                if (Object.hasOwn(conversations, chatId)) {
+                  const { temporaryChat, ...rest } = conversations
+                  return { ...prev, conversations: rest, ordering: [...ordering.filter(id => id !== chatId)] }
+                }
+                return prev
+              })
+            }
             navigate("/conversations");
           }}
         />
@@ -112,7 +101,7 @@ export default function Chat() {
               className="  w-8 h-8 md:w-10 md:h-10 lg:w-10 lg:h-10 flex justify-center font-bold text-base md:text-lg lg:text-xl items-center rounded-full "
               style={{ background: bgColor }}
             >
-              <p>{`${otherUser?.username[0]?.toUpperCase()}${otherUser?.username[1]?.toUpperCase()}`}</p>
+              <p>{`${otherUser?.username?.[0]?.toUpperCase()}${otherUser?.username?.[1]?.toUpperCase()}`}</p>
             </div>
           )}
         </div>
@@ -125,8 +114,19 @@ export default function Chat() {
           </div>
         </div>
       </div>
+      {outGoingMessage?.preview && <Preview
+        handleAttachment={setAttachment}
+        handleOutGoingMessage={setOutGoingMessage}
+        outGoingMessage={outGoingMessage}
+        setMessages={setMessages}
+        setUserConversations={setUserConversations}
+        setAttachment={setAttachment}
+        divRef={divRef}
 
-      <div className="flex-1 overflow-auto flex flex-col">
+      />
+      }
+
+      <div className={`flex-1 relative flex flex-col overflow-auto`} ref={divRef}>
         {showReactionUi?.state && (
           <ReactionUi
             message={showReactionUi?.obj}
@@ -136,13 +136,14 @@ export default function Chat() {
           // chatId={conversationId[2]}
           />
         )}
-        <ul className="list-none gap-3 flex flex-col p-3 ">
+        <ul className="list-none gap-3 flex flex-col p-3">
+
           <div className="text-md text-green-600 text-center flex flex-col items-center gap-3 my-4 mb-8">
             <div>
               <p>New chat started.</p>
               <p>Send a message to keep the chat going</p>
             </div>
-            {isRequestd && isConnected && connectionStatus && (
+            {isRequested && isConnected && connectionStatus && (
               <div className="flex flex-col gap-2 px-6 items-center">
                 <p>
                   This person is not in your connection list,what would you want
@@ -178,7 +179,8 @@ export default function Chat() {
             if (message) {
               message.align = messagePosition;
             }
-            const isRead = message?.id <= conversation?.lastReadMsgId && message?.sender === user?.id
+            const isReadId = message?.id ?? message?.msgId
+            const isRead = isReadId <= conversation?.lastReadMsgId && message?.sender === user?.id
 
             const reactedReactions = message?.reaction?.map((reaction, i) => {
               return (
@@ -202,7 +204,7 @@ export default function Chat() {
                 <div
                   className={`${message?.sender == otherUser?.id ? "rounded-xl rounded-bl-xs bg-[rgba(0,0,0,0.7)]" : "rounded-xl rounded-br-xs bg-[#336333]"} p-1`}
                 >
-                  <div className="flex max-h-500">
+                  <div className="flex max-h-500 relative">
                     {message?.attachmentType?.includes('image') ? (
                       <img
                         src={message?.attachment}
@@ -222,10 +224,10 @@ export default function Chat() {
                     )}
                   </div>
                   <div className="flex justify-between">
-                    {message?.text?.length > 1 && <p className="text-white leading-5 text-sm md:text-sm lg:text-sm flex items-center p-1">
+                    {message?.text?.length >= 1 && <p className="text-white leading-5 text-sm md:text-sm lg:text-sm flex items-center">
                       {message?.text}
                     </p>}
-                    {message.sender == currentUserId && (
+                    {message?.sender == currentUserId && (
                       <p className="absolute  flex ml-1 self-end bottom-1 right-0">
                         {
                           // status === "Read" ||
@@ -255,15 +257,8 @@ export default function Chat() {
 
             );
           })}
-          <li className="  relative h-50 w-50 border-5 border-red-500">
-            <img src={image} className="h-full" />
-            <div className=" backdrop-blur-xs bg-[rgba(0,0,0,0.2)] absolute top-0 h-full w-full flex flex-col items-center justify-center">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-full border-4 border-black border-t-transparent animate-spin"></div>
-                <div className="absolute top-2 left-2 text-xm">rss</div>
-              </div>
-            </div>
-          </li>
+
+
           <div
             ref={bottomRef}
             className={` gap-1 ${typing ? "flex"
@@ -272,29 +267,40 @@ export default function Chat() {
           >
             <TypingIdicator />
           </div>
-        </ul>
 
+        </ul>
       </div>
 
 
 
+
+      {attachment && <AttachmentBox setOutGoingMessage={setOutGoingMessage} />}
       <TypingComponent
         handleAttachment={setAttachment}
         handleOutGoingMessage={setOutGoingMessage}
         outGoingMessage={outGoingMessage}
-        setMessages={setMessages}
-        setUserConversations={setUserConversations}
       />
-      {attachment && <AttachmentBox setOutGoingMessage={setOutGoingMessage} />}
 
-      <Preview
-        handleAttachment={setAttachment}
-        handleOutGoingMessage={setOutGoingMessage}
-        outGoingMessage={outGoingMessage}
-        setMessages={setMessages}
-        setUserConversations={setUserConversations}
-
-      />
     </div >
   );
 }
+
+
+
+
+
+
+
+
+
+// {(message?.attachmentType?.includes('image') || message?.attachmentType?.includes('video')) && (
+//   <div className="flex flex-col justify-center items-center h-full absolute w-full backdrop-blur-lg bg-[rgba(0,0,0,0,0.1)]">
+//     <div className="relative">
+//       <div>
+//         <div className="w-10 h-10 border-4 rounded-full border-gray-500 border-t-transparent animate-spin"></div>
+//       </div>
+//       <div className="absolute top-2 left-2">hello</div>
+//     </div>
+//   </div>
+// )}
+

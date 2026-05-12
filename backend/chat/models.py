@@ -70,9 +70,9 @@ class User(AbstractBaseUser,PermissionsMixin):
 
 class Conversation(models.Model):
     chat_type=models.CharField(max_length=200,choices=[('group','Group'),('direct','Direct')],null=True,blank=True)
-    pending_user=models.JSONField(default=list)
     name=models.CharField(max_length=300,blank=True,null=True)
     group_img=CloudinaryField('group_img',null=True,blank=True,folder='group-img')
+    client_conversation_id=models.UUIDField(editable=False,null=True,blank=True)
     admin=models.ManyToManyField(User,related_name='admin')
     super_admin=models.ForeignKey(User,related_name='super_admin',on_delete=models.SET_NULL,null=True,blank=True)
     participants=models.ManyToManyField(User,related_name='conversation_paritcipant')

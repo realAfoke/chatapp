@@ -1,17 +1,25 @@
 import { TypingComponent } from "./TypingBox";
 import close from "../assets/icons/close.svg";
+import { useEffect } from "react";
 export default function Preview({
-  handleAttachment,
   handleOutGoingMessage,
   outGoingMessage,
-  setMessages,
-  setUserConversations
+  setAttachment,
+  divRef
 }) {
+  useEffect(() => {
+    if (divRef.current) {
+      console.log(divRef.current.getBoundingClientRect())
+    }
+    setAttachment(false)
+  }, [])
+  const objViewPort = divRef.current.getBoundingClientRect()
+  const pos = { bottom: objViewPort.top }
   return (
     <div
-      className={`${outGoingMessage.preview ? "fixed top-0 left-0 block h-screen  w-full" : "hidden"} backdrop-blur-sm bg-[rgba(0,0,0,0.8)] flex flex-col overflow-hidden`}
+      className={` absolute z-9999 block my-3 h-full w-full backdrop-blur-sm bg-[rgba(0, 0, 0, 0.8)] flex flex-col overflow-hidden`} style={pos}
     >
-      <div className="flex-1 flex flex-col justify-center">
+      <div className="flex-1 flex flex-col justify-center overflow-hidden items-center">
         <img
           src={close}
           className="w-10 h-10 outline-none text-[20px] font-bold absolute top-0 right-0 text-white m-4"
@@ -26,18 +34,11 @@ export default function Preview({
         ) : (
           <img
             src={outGoingMessage.preview}
-            className="max-w-full max-h-full"
+            className="object-contain h-full max-w-full "
             alt=""
           />
         )}
       </div>
-      <TypingComponent
-        handleAttachment={handleAttachment}
-        handleOutGoingMessage={handleOutGoingMessage}
-        outGoingMessage={outGoingMessage}
-        setMessages={setMessages}
-        setUserConversations={setUserConversations}
-      />
     </div>
   );
 }

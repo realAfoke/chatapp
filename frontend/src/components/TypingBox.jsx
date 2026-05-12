@@ -3,16 +3,18 @@ import attachmentIcon from "../assets/icons/attachment-icon.svg";
 import sendButton from "../assets/icons/send-button.svg";
 import { useAuth } from "../routes/context";
 import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export function TypingComponent({
   handleAttachment,
   handleOutGoingMessage,
   outGoingMessage,
-  setMessages,
-  setUserConversations,
 }) {
-  const { chatWs, user } = useAuth()
+  const navigate = useNavigate()
+  const { chatWs, user, userConversations, setUserConversations, setMessages } = useAuth()
   const { chatId } = useParams()
+  const allConversation = userConversations?.conversations ?? {}
+  const conversation = allConversation?.[chatId] ?? {}
 
   return (
     <div
@@ -46,7 +48,7 @@ export function TypingComponent({
           }))
         }
         id="typingBox"
-        className={`${outGoingMessage.preview ? "text-white ring-white" : "text-black ring-black"} rounded-[10px] p-3 outline-none flex-2 h-10 ring`}
+        className={`text-black ring-black rounded-[10px] p-3 outline-none flex-2 h-10 ring`}
       />
       <button
         onClick={async () => {
@@ -56,13 +58,17 @@ export function TypingComponent({
           content.status = 'pending'
           content.sender = user?.id
 
-          if (outGoingMessage.preview) {
+          if (outGoingMessage.preview || conversation?.messages?.length < 1) {
+            if (conversation?.messages?.length < 1) {
+              content['isNewChat'] = true
+            }
             await httpSend(
               content,
               handleOutGoingMessage,
               setMessages,
               setUserConversations,
-              chatId
+              chatId,
+              navigate
             );
           } else {
 

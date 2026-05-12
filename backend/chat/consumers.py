@@ -64,18 +64,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message=event['message']
         await self.send(text_data=json.dumps(message))
 
-    # @database_sync_to_async
-    # def add_user_to_conversation(self,pending):
-    #     request=ContextRequestObj(self.scope)
-    #     other_user=pending[0]
-    #     self.conversation.pending_user=[]
-    #     self.conversation.participants.add(other_user)
-    #     self.conversation.save(update_fields=['pending_user'])
-    #     serialiser=ConnectionRequestSerializer(data={'to_user':other_user},context={'request':request})
-    #     if serialiser.is_valid(raise_exception=True):
-    #         serialiser.save(from_user=self.current_user)
-    #     return serialiser.data
-    #
+    @database_sync_to_async
+    def add_user_to_conversation(self,pending):
+        request=ContextRequestObj(self.scope)
+        other_user=pending[0]
+        self.conversation.pending_user=[]
+        self.conversation.participants.add(other_user)
+        self.conversation.save(update_fields=['pending_user'])
+        serialiser=ConnectionRequestSerializer(data={'to_user':other_user},context={'request':request})
+        if serialiser.is_valid(raise_exception=True):
+            serialiser.save(from_user=self.current_user)
+        return serialiser.data
+
 
         # self.conversation.participants.add(self.conversation.pending_user[0])
     async def receive(self, text_data = None, bytes_data = None):
@@ -97,26 +97,34 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await self.channel_layer.group_send(group,{'type':'chat.message','message':data})
                 return
             if 'lastReadMsgId' in data: 
+                print('here bro:',data)
                 await self.mark_as_read(data)
+                print('Group:',group)
                 await self.channel_layer.group_send(group,{'type':'chat.message','message':{'conversation':data.get('conversation'),'lastReadMsgId':data.get('lastReadMsgId')}})
                 return
             if 'reaction' in data:
-                # await database_sync_async(self.conversation.)
-                # msg=await database_sync_to_async(lambda:MessageReaction.objects.create(user=self.current_user,message_id=data['msgId'],conversation=self.conversation,reaction=data['reaction']))()
                 await self.add_reaction_to_message(data)
                 await self.channel_layer.group_send(group,{'type':'chat.message','message':data})
 
                 return
 
-            db_data={'sender':self.current_user,'client_id':data.get('clientId'),'conversation_id':data.get('conversation'),'text':data.pop('text')}
-            db_msg=await self.save_mssg(db_data)
-            data['msgId']=db_msg.id
-            data['status']='sent'
-            await self.channel_layer.group_send(group,{'type':'chat.message','message':data})
-            # data.pop('text')
-            data['response']='server'
-            await self.channel_layer.group_send(self.group_name,{'type':'chat.message','message':data})
-            status={'user_id':receiver_id,'message':db_msg,'conversation_id':db_msg.conversation_id,'status':'sent'}
+            saved_data={'sender':self.current_user,'client_id':data.get('clientId'),'conversation_id':data.get('conversation'),'text':data.get('text')}
+            saved_msg=await self.save_mssg(saved_data)
+            message_data=data
+            message_data['msgId']=saved_msg.id
+            message_data['status']='sent'
+            await self.channel_layer.group_send(group,{'type':'chat.message','message':message_data})
+            server_payload={
+                    'response':'server',
+                    'sender':message_data.get('sender'),
+                    'conversation':data.get('conversation'),
+                    'clientId':message_data.get('clientId'),
+                    'status':message_data.get('status'),
+                    'createdAt':data.get('createdAt'),
+                    'msgId':message_data.get('msgId')
+                    }
+            await self.channel_layer.group_send(self.group_name,{'type':'chat.message','message':server_payload})
+            status={'user_id':receiver_id,'message':saved_msg,'conversation_id':saved_msg.conversation_id,'status':'sent'}
             await self.register_mssg_receipt(status)
         #
         # pending=list(self.conversation.pending_user)

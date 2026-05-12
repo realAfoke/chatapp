@@ -22,11 +22,29 @@ export default function ConversationsLayOut() {
   const [showProfile, setShowProfile] = useState(false)
   const { conversationMessages, fullConversation } = useMemo(() => normalise(appData[0]), [appData]);
   const { user, userConversations, setUserConversations, setMessages, typing, connections, token, setUserStatus, userStatusRef, setCurrentChat, setTyping, chatWs } = useAuth()
-  const [localMessage, setLocalMessage] = useState([])
+
 
   useEffect(() => {
-    setUserConversations((prev) => ({ ...prev, ...fullConversation }))
-  }, [fullConversation])
+    if (!fullConversation) return;
+
+    setUserConversations((prev) => ({
+      ...prev,
+
+      conversations:
+        Object.keys(fullConversation.conversations ?? {}).length > 0
+          ? {
+            ...prev.conversations,
+            ...fullConversation.conversations
+          }
+          : prev.conversations,
+
+      ordering:
+        fullConversation.ordering?.length > 0
+          ? [...new Set([...fullConversation.ordering, ...prev.ordering,])]
+          : prev.ordering
+    }));
+  }, [fullConversation]);
+
 
   useEffect(() => {
     (async () => {
@@ -42,11 +60,11 @@ export default function ConversationsLayOut() {
   const [hideAddNewChat, setHideAddNewChat] = useState(true);
   // useConversationHooke(user, token, setUserConversations, setMessages, setUserStatus, userStatusRef, generalSocket)
 
-  useConversation(user, setMessages, setUserConversations, chatId, token, chatWs, indexedDB, setLocalMessage)
+  useConversation(user, setMessages, setUserConversations, token, chatWs, indexedDB)
 
   const conversations = userConversations.ordering?.map((convoId) => {
     const mainConversation = userConversations.conversations?.[convoId]
-    const otherUser = mainConversation.allParticipants?.filter((secondUser) => secondUser.id !== user?.id)[0]
+    const { otherUser } = mainConversation
     return (
       <li key={mainConversation?.id}>
         <Convo conversation={mainConversation} user={user} otherUser={otherUser} setCurrentChat={setCurrentChat} />
@@ -66,7 +84,7 @@ export default function ConversationsLayOut() {
             placeholder="search conversation, sorry but it's now working yet"
           />
         </div>
-        <ul className="px-2 flex-1 overflow-auto">
+        <ul className="px-2 pb-[10rem] h-screen overflow-auto">
           {hideAddNewChat ? (
             <>
               <div className="">
@@ -92,7 +110,7 @@ export default function ConversationsLayOut() {
         </ul>
       </div>
       <div className="flex-1">
-        <Outlet context={{ setHideAddNewChat, chatId, indexedDB }} />
+        <Outlet context={{ setHideAddNewChat, indexedDB }} />
       </div>
     </div >
   )

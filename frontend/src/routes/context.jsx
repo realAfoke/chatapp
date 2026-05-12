@@ -36,12 +36,27 @@ export default function AuthProvider({ children }) {
   const [userStatus, setUserStatus] = useState([]);
   const userStatusRef = useRef(null);
   const [messages, setMessages] = useState({});
-  const [userConversations, setUserConversations] = useState({});
+  const [userConversations, setUserConversations] = useState({ conversations: {}, ordering: [] });
   const [typing, setTyping] = useState({ isTyping: false, user: "" });
   const [connections, setConnections] = useState([]);
   //websocket state stuff
   const socketChat = useRef(null);
-
+  // const wrappedSetUserConversations = (updater) => {
+  //   setUserConversations(prev => {
+  //     const next =
+  //       typeof updater === "function"
+  //         ? updater(prev)
+  //         : updater;
+  //
+  //     console.group("USER CONVO UPDATE");
+  //     console.trace();
+  //     console.log("PREV", prev);
+  //     console.log("NEXT", next);
+  //     console.groupEnd();
+  //
+  //     return next;
+  //   });
+  // };
 
   return (
     <AuthContext.Provider

@@ -1,3 +1,5 @@
+import { replace } from "react-router-dom";
+import { redirect } from "react-router-dom";
 import { api } from "../utils";
 import { getDb } from "../utils";
 //data formatter
@@ -5,20 +7,22 @@ import { getDb } from "../utils";
 
 
 
+
 export function formatDate(timestamp) {
+  if (!timestamp) return
   const mssgDate = new Date(timestamp);
   const now = new Date();
   const diff = now - mssgDate;
   const hours = diff / (1000 * 60 * 60);
   if (hours < 24) {
-    return mssgDate.toLocaleTimeString("en-US", {
+    return mssgDate?.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "numeric",
     });
   } else if (hours < 48) {
     return "yesterday";
   } else {
-    return mssgDate.toLocaleDateString();
+    return mssgDate?.toLocaleDateString();
   }
 }
 //
@@ -73,7 +77,8 @@ export async function httpSend(
   setOutGoingMessage,
   setMessages,
   setConversation,
-  conversationId
+  conversationId,
+  navigate
 ) {
   try {
     const formData = new FormData();
@@ -101,28 +106,102 @@ export async function httpSend(
     })
     //
     setMessages((prev) => {
+      const { preview, ...rest } = content
       const msgId = content?.clientId ?? content?.msgId
       return {
         ...prev,
-        [msgId]: { ...prev?.[msgId] ?? {}, ...content }
+        [msgId]: { ...prev?.[msgId] ?? {}, ...rest, attachment: preview }
       }
     })
-    setOutGoingMessage((prev) => (
-      {
-        ...prev,
-        text: "",
-        // preview: null,
-      }
-    ));
+    setOutGoingMessage((prev) => {
+      const { receiverId, text } = prev
+      const reset = { receiverId, text }
 
-    await api.post(
+      return {
+        ...reset,
+        text: "",
+      }
+    }
+    );
+
+    const apiResponse = await api.post(
       `api/conversation/${conversationId}/file-upload/`,
       formData, {
       onUploadProgress: (progressEvent) => {
         const percent = Math.round(progressEvent.loaded * 100) / progressEvent.total
       }
     }
-    );
+    )
+
+    const { data } = apiResponse
+    if (Object.hasOwn(data, 'newConversation')) {
+
+      let { initialMessage } = apiResponse.data
+      let { newConversation } = apiResponse.data
+      const id = newConversation?.id
+      const { msgId } = initialMessage
+      const { clientId } = initialMessage
+      setConversation((prev) => {
+        const { serverId } = newConversation
+        const { conversations, ordering } = prev
+        const mainConvo = conversations?.[serverId] ?? {}
+        const messages = mainConvo?.message ?? []
+        const initialMessageFilteredId = [...new Set([...messages.filter(id => id !== initialMessage?.clientId), initialMessage.id])]
+
+        let newConvo = { ...mainConvo, ...newConversation, messages: initialMessageFilteredId }
+
+        const { [serverId]: _, ...rest } = conversations
+
+        return {
+          ...prev,
+          conversations: { ...(rest ?? {}), [newConvo?.id]: newConvo },
+          ordering: [...new Set([Number(newConvo.id), ...ordering.filter(id => id !== serverId)])]
+        }
+
+      })
+      setMessages((prev) => {
+        const existingMsg = prev?.[clientId] ?? {}
+        const { [clientId]: _, ...rest } = prev
+        return {
+          ...rest,
+          [msgId]: { ...existingMsg, ...initialMessage }
+        }
+      })
+      navigate(`/conversations/chat/${id}`, { replace: true })
+      return
+    } else {
+      const { msgId, clientId } = data
+      setConversation((prev) => {
+        const conversations = prev?.conversations ?? {}
+        const mainConvo = conversations?.[conversationId]
+        const messages = mainConvo?.messages ?? []
+        if (messages?.includes(clientId)) {
+          const filterIds = [...new Set([...messages.filter(id => id !== clientId), Number(msgId)])]
+          return {
+            ...prev,
+            conversations: {
+              ...conversations,
+              [conversationId]: { ...(mainConvo ?? {}), messages: filterIds }
+            }
+          }
+        }
+      })
+
+      setMessages((prev) => {
+        if (Object.hasOwn(prev, clientId)) {
+          const existingMsg = prev?.[clientId] ?? {}
+          const updatedMsg = { ...existingMsg, ...data }
+          const { [clientId]: _, ...rest } = prev
+          return {
+            ...rest,
+            [msgId]: updatedMsg
+          }
+        }
+        const delivered = { ...(prev?.[msgId] ?? {}), ...data }
+        return { ...prev, [msgId]: delivered }
+
+      })
+    }
   } catch (error) {
     console.error(error);
   }
@@ -177,13 +256,8 @@ export async function wssSend({ ref, content, setOutGoingMessage, setMessages, s
 
     content.createdAt
     if (!Object.hasOwn(content, 'reaction')) {
-      await saveMessageLocally(content)
+      // await saveMessageLocally(content)
     }
-    socket.send(JSON.stringify(content));
-
-
-    delete content.receiverId
-
     setConversation((prev) => {
       const { conversations } = prev
       const conversationId = content.conversation
@@ -226,8 +300,9 @@ export async function wssSend({ ref, content, setOutGoingMessage, setMessages, s
         [msgId]: { ...prev?.[msgId] ?? {}, ...content }
       }
     })
+
+    socket.send(JSON.stringify(content));
     if (!Object.hasOwn(content, 'reaction')) {
-      console.log('content:', content)
       setOutGoingMessage((prev) => (
         {
           ...prev,
@@ -236,7 +311,9 @@ export async function wssSend({ ref, content, setOutGoingMessage, setMessages, s
         }
       ));
     }
+
   }
+
 }
 //
 function longpress(toggleReaction, message, event) {

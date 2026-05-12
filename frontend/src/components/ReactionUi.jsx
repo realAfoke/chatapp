@@ -6,14 +6,15 @@ import copyIcon from "../assets/icons/copy.svg";
 import forwardIcon from "../assets/icons/forward.svg";
 import { wssSend } from "../utils/chatUtil";
 import { useAuth } from "../routes/context";
+import { useParams } from "react-router-dom";
 
 export default function ReactionUi({
   message,
   event,
   setShowReactionUi,
   receiverId
-  // conversationId,
 }) {
+  const { chatId } = useParams()
   const { user, chatWs, setMessages, setUserConversations } = useAuth()
   const [reaction, setReaction] = useState(null);
   useEffect(() => {
@@ -24,11 +25,12 @@ export default function ReactionUi({
 
   function sendReaction(selectedReaction) {
     const content = {
-      msgId: message.id,
+      msgId: message?.msgId || message?.id,
       reacter: user?.username,
       reaction: selectedReaction,
       content: message.text,
-      receiverId: receiverId
+      receiverId: receiverId,
+      conversation: chatId
     }
 
     wssSend({ ref: chatWs, content: content, setMessages: setMessages, setConversation: setUserConversations })
