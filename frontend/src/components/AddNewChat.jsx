@@ -5,11 +5,13 @@ import SearchIcon from "../assets/icons/search2.svg";
 import { api } from "../utils";
 import { useNavigate } from "react-router-dom";
 import goBack from "../assets/icons/go-back.svg";
+import { useAuth } from "../routes/context";
 
 export default function AddNewChat({ connections, setHideAddNewChat }) {
   const navigate = useNavigate();
+  const { setUserConversations } = useAuth()
   const [showSearchInput, setShowSearchInput] = useState(false);
-  const [isCreating, setIsCreating] = useState(false)
+  const isCreating = useRef(false)
   const debouncer = useRef(null);
   const [searchResult, setSearchResult] = useState([]);
   const [searchUser, setSearchUser] = useState("");
@@ -42,22 +44,43 @@ export default function AddNewChat({ connections, setHideAddNewChat }) {
     }, 300);
   }, [searchUser]);
 
-  async function createNewConversation(user) {
-    try {
-      if (isCreating) return
-      setIsCreating(true)
-      const startNewConversation = await api.post("api/conversation/create/", {
-        pending_user: [user.id], chatType: 'direct'
-      });
-      const newConvo = startNewConversation.data;
-      const { id } = newConvo;
-      navigate(`chat/${id}`, { state: { newConvo: newConvo }, replace: true });
-    } catch (error) {
-      console.error(error);
+  let count = 0
+  function createNewConversation(user) {
+    if (isCreating.current) return
+
+    isCreating.current = true
+    console.log(count++)
+    const tempConvo = {
+      messages: [],
+      otherUser: user
     }
-    finally {
-      setIsCreating(false)
-    }
+    const temporaryChatId = crypto.randomUUID()
+    setUserConversations((prev) => {
+      // const { conversations, ordering } = prev
+      const conversations = prev?.conversations ?? {}
+      const ordering = prev?.ordering ?? []
+      return {
+        ...prev,
+        conversations: { ...(conversations ?? {}), [temporaryChatId]: tempConvo },
+        ordering: [...(ordering ?? []), temporaryChatId]
+      }
+    })
+    navigate(`chat/${temporaryChatId}`)
+    // try {
+    //   if (isCreating) return
+    //   setIsCreating(true)
+    //   const startNewConversation = await api.post("api/conversation/create/", {
+    //     pending_user: [user.id], chatType: 'direct'
+    //   });
+    //   const newConvo = startNewConversation.data;
+    //   const { id } = newConvo;
+    //   navigate(`chat/${id}`, { state: { newConvo: newConvo }, replace: true });
+    // } catch (error) {
+    //   console.error(error);
+    // }
+    // finally {
+    //   setIsCreating(false)
+    // }
   }
   const foundUsers = searchResult?.map((user) => {
     return (
@@ -65,7 +88,11 @@ export default function AddNewChat({ connections, setHideAddNewChat }) {
         key={user.id}
         className="flex items-center gap-3 py-4"
         onClick={async () => {
-          await createNewConversation(user);
+          if (user?.conversation) {
+            navigate(`chat/${user.conversation}`, { replace: true })
+            return
+          }
+          createNewConversation(user);
         }}
       >
         <img

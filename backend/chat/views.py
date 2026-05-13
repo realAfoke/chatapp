@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
-from . serializers import RegisterSerializer,LoginSerializer,ConnectionRequestSerializer,ConnectionSerializer,PendingRequestSerializer,UserSerializer,ConversaitonSerializer,MessageSerializer,MessageReceiptSerializer,MessageReactionSerializer,BasicUserSerializer
+from . serializers import RegisterSerializer,LoginSerializer,ConnectionRequestSerializer,ConnectionSerializer,PendingRequestSerializer,UserSerializer,ConversationSerializer,MessageSerializer,MessageReceiptSerializer,MessageReactionSerializer,BasicUserSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from . models import Connection,ConnectionRequest,Conversation,Message,MessageReciept,MessageReaction
 from rest_framework import permissions
@@ -20,6 +20,8 @@ import random
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.exceptions import TokenError,InvalidToken
 from pprint import pprint
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 # redis_client=redis.Redis(host='localhost',port=6379,decode_responses=True)
 # print('redis client:',redis_client)
@@ -143,7 +145,6 @@ class RequestConnection(generics.UpdateAPIView):
 
     
     def perform_update(self, serializer):
-        print('request:',self.request.data)
         instance=serializer.save()
         if instance.status == 'connected':
             if self.request.user.id == instance.from_user_id:
@@ -187,16 +188,16 @@ class SearchConnection(generics.ListAPIView):
     
 class CreateConversation(generics.CreateAPIView):
     queryset=Conversation.objects.all()
-    serializer_class=ConversaitonSerializer
+    serializer_class=ConversationSerializer
     permission_classes=[permissions.IsAuthenticated]
 
 
 class Conversations(generics.ListAPIView):
-    serializer_class=ConversaitonSerializer
+    serializer_class=ConversationSerializer
     permission_classes=[permissions.IsAuthenticated]    
     def get_queryset(self):
         current_user=self.request.user
-        return Conversation.objects.filter(participants=current_user).exclude(pending_user__contains=current_user.id).order_by('updated_at')
+        return Conversation.objects.filter(participants=current_user).order_by('updated_at')
     
 class FetchMessage(generics.ListAPIView):
     serializer_class=MessageSerializer
@@ -304,17 +305,69 @@ class FileUploadView(APIView):
     permission_classes=[permissions.IsAuthenticated]
     parser_classes=[MultiPartParser,FormParser]
     def post(self,request,*args,**kwargs):
-        self.conversation_id=self.kwargs.get('conversation_id')
+        channel_layer=get_channel_layer()
+        data=self.request.data.copy()
+        normalise_data={}
+        for k,v in data.copy().items():
+                normalise_data[k]=v
+        normalise_data['status']='sent'
+
+        if 'is_new_chat' in normalise_data and normalise_data['is_new_chat']:
+            make_request=ConnectionRequestSerializer(data={'to_user':data.get('receiver_id')},context={'request':request})
+            make_request.is_valid(raise_exception=True)
+            make_request.save(status='pending')
+            convo_data={'pending_user':[normalise_data.get('receiver_id')],'client_conversation_id':kwargs.get('conversation_id')}
+            conversation_serializer=ConversationSerializer(data=convo_data,context={'request':self.request})
+            conversation_serializer.is_valid(raise_exception=True)
+            conversation_serializer.save(client_conversation_id=kwargs.get('conversation_id'))
+            conversation_data=conversation_serializer.data
+            conversation_data['serverId']=conversation_data.get('client_conversation_id')
+            serializer=MessageSerializer(data=normalise_data,context={'request':self.request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save(client_id=normalise_data.get('client_id'),sender=self.request.user,text=data.get('text',''),conversation_id=conversation_data.get('id'))
+            message_data=serializer.data
+            message_data['msgId']=message_data.get('id')
+            message_data.pop('reaction',None)
+            general_message={'initialMessage':message_data,'newConversation':conversation_data}
+            receiver_channel=f'user_{normalise_data.get('receiver_id')}'
+            other_user=User.objects.get(id=request.user.id)
+            user_serialiser=BasicUserSerializer(other_user,context={'request':request})
+            conver_two={**conversation_data}
+            conver_two['other_user']=user_serialiser.data
+            user_message={'initialMessage':message_data,'newConversation':conver_two}
+
+            async_to_sync(channel_layer.group_send)(receiver_channel,{'type':'chat.message','message':user_message})
+            return Response(general_message)
+
+        self.conversation_id=int(self.kwargs.get('conversation_id'))
         self.conversation=get_object_or_404(Conversation,id=self.conversation_id)
         current_user=self.request.user
         if not current_user in set(self.conversation.participants.all()):
             raise PermissionDenied('you\re not part of this conversation')
-        self.data=self.request.data.copy()
-        self.data['conversation']=self.conversation_id
-        serializer=MessageSerializer(data=self.data,context={'request':self.request})
-        if serializer.is_valid(raise_exception=True):
-            serializer.save(sender=self.request.user,content=self.data['content'])
-            # print('data:',serializer.data)
-            return Response(serializer.data)
-            
+        serializer=MessageSerializer(data=normalise_data,context={'request':self.request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(client_id=normalise_data.get('client_id'),sender=self.request.user,text=data.get('text',''),conversation=self.conversation)
+        if serializer:
+            message_data=serializer.data
+            message_data['conversation']=self.conversation.id
+            message_data['clientId']=message_data.pop('client_id')
+            message_data['attachmentType']=message_data.pop('attachment_type')
+            message_data['msgId']=message_data.get('id')
+            message_data.pop('reaction',None)
+            receiver_group=f'user_{int(data.get('receiver_id'))}'
+            sender_group=f'user_{self.request.user.id}'
+            msg_stat=self.conversation.mssgconversation_reciept.filter(message_id=message_data.get('id')).first()
+            # mesg_stat=MessageReciept.objects.get(id=message_data.get('id'))
+            async_to_sync(channel_layer.group_send)(receiver_group,{'type':'chat.message','message':message_data})
+            server_payload={
+                    'clientId':message_data.get('clientId'),
+                'status':message_data.get('status'),
+                'createdAt':data.get('created_at'),
+                    'msgId':serializer.data.get('id'),
+                    'attachment':message_data.get('attachment')
+                    }
+            # print('server_response:',server_payload)
+
+            # async_to_sync(channel_layer.group_send)(sender_group,{'type':'chat.message','message':server_payload})
+            return Response(server_payload)
         return Response(status=204)

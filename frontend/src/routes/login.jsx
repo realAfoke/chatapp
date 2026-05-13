@@ -1,6 +1,7 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useOutletContext } from "react-router-dom";
 import LoginOrRegister from "../components/LoginOrRegister";
 export default function Login() {
+  const { errorLoader } = useOutletContext()
   return (
     <div className="flex flex-col  justify-center h-screen">
       <div className="flex justify-center flex-col items-center py-5">
@@ -9,21 +10,11 @@ export default function Login() {
         </h2>
         <span>Login to start interacting</span>
       </div>
+      {errorLoader.error && <div className="text-red-500 text-sm md:text-base lg:text-lg text-center">{errorLoader.error}</div>}
       <LoginOrRegister />
     </div>
   );
 }
 
-export async function loader() {
-  try {
-    const token = localStorage.get('access')
-    if (!token) {
-      throw new Error('user not logged in')
-    }
-    await api.get(`${import.meta.env.VITE_API_URL}/api/me/`)
-    return redirect('/conversations')
-  } catch (error) {
-    return
-  }
-}
+
 

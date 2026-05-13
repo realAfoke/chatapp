@@ -12,98 +12,57 @@ import ReactionUi from "../components/ReactionUi";
 import TypingIdicator from "../components/TypingIndicator";
 import goBack from "../assets/icons/go-back.svg";
 import { useAuth } from "../routes/context";
-import { useParams } from "react-router-dom";
+import image from "../assets/images/file1.jpg"
 import { useChat } from "../hooks/chatHook";
-
+import { useParams } from "react-router-dom";
 
 
 export default function Chat() {
+  const { setHideAddNewChat, indexedDB
+  } = useOutletContext()
+  const { user, userConversations, setUserConversations, messages, setMessages, connections, setConnections, userStatus, chatWs } = useAuth()
   const { chatId } = useParams()
-  const { generalSocket, setHideAddNewChat } = useOutletContext()
-  const socketChat = useRef(null) // store chat wss for passing on to other component
-  const { user, token, userConversations, setUserConversations, messages, setMessages, connections, setConnections, userStatusRef, userStatus, setTyping } = useAuth()
-  const location = useLocation();
-  const navigate = useNavigate();
-  const newConvo = location?.state?.newConvo ?? {};
 
-  const { conversations } = userConversations;
-  useEffect(() => {
-    if (conversations?.[chatId]) return;
-    setUserConversations((prev) => {
-      const { conversations, ordering } = prev;
-      const activeChat = conversations?.[chatId];
-      return {
-        ...prev,
-        conversations: {
-          ...conversations,
-          [chatId]: {
-            ...(activeChat ?? {}),
-            ...newConvo,
-            messages: [...(activeChat?.messages ?? [])],
-            lastMssg: { ...(activeChat?.lastMssg ?? {}), ...newConvo.lastMssg },
-          },
-        },
-        ordering: [...new Set([Number(chatId), ...ordering ?? []])],
-      };
-    });
-  });
-  const conversation = conversations?.[chatId] ?? newConvo;
+  const navigate = useNavigate();
+
+
+  const conversations = userConversations?.conversations ?? {};
+  const divRef = useRef(null)
+
+
+  const [presser, setPresser] = useState(false)
+  const conversation = conversations?.[chatId] ?? {}
+
   const connectionRequest = conversation?.connectionRequest;
 
   const typing = conversation?.typing;
-  const currentUserId = user.id;
+  const currentUserId = user?.id;
   const conversationMessages =
-    conversation?.messages?.map((mssgId) => messages[mssgId]) ?? [];
+    conversation?.messages?.map((msgId) => messages[msgId]) ?? [];
+
   const connectionIds = new Set(connections.map((con) => con.id));
   const [attachment, setAttachment] = useState(false);
-  const otherUser = conversation?.allParticipants?.filter(
-    (participant) => participant.id !== user.id,
-  )[0];
+  const otherUser = conversation?.otherUser ?? {}
   const isConnected = !connectionIds.has(otherUser?.id);
-  const isRequestd = currentUserId !== connectionRequest?.fromUserInfo?.id;
+  const isRequested = currentUserId !== connectionRequest?.fromUserInfo?.id;
   const connectionStatus = connectionRequest?.status === "pending";
   // debugger;
   const bottomRef = useRef(null);
-  const [userContent, setUserContent] = useState({
-    msgId: "",
-    userId: "",
-    type: null,
-    isTyping: null,
-    content: " ",
-    preview: null,
+  const [outGoingMessage, setOutGoingMessage] = useState({
+    receiverId: null,
+    text: "",
   });
 
-  const [presser, setPresser] = useState(null);
   const [showReactionUi, setShowReactionUi] = useState({
     state: false,
     obj: "",
     event: "",
   });
-  const textScreen = useRef(null);
-  useChat(
-    chatId,
-    token,
-    otherUser,
-    socketChat,
-    generalSocket,
-    conversationMessages,
-    setMessages,
-    conversation,
-    setUserConversations,
-    userStatusRef,
-    setTyping,
-    userContent,
-    setUserContent,
-    bottomRef,
-  );
 
-  closeMemoryLeaks(userContent);
+  useChat(otherUser, conversationMessages, conversation, setUserConversations, outGoingMessage, setOutGoingMessage, chatWs, chatId, bottomRef, indexedDB)
+
+  closeMemoryLeaks(outGoingMessage);
   const bgColor = generateRandomColors();
-  const btnRef = useRef(null);
-
-  useEffect(() => {
-    btnRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -115,6 +74,16 @@ export default function Chat() {
           alt=""
           onClick={() => {
             setHideAddNewChat(true)
+            if (typeof chatId !== 'number') {
+              setUserConversations((prev) => {
+                const { conversations, ordering } = prev
+                if (Object.hasOwn(conversations, chatId)) {
+                  const { temporaryChat, ...rest } = conversations
+                  return { ...prev, conversations: rest, ordering: [...ordering.filter(id => id !== chatId)] }
+                }
+                return prev
+              })
+            }
             navigate("/conversations");
           }}
         />
@@ -132,7 +101,7 @@ export default function Chat() {
               className="  w-8 h-8 md:w-10 md:h-10 lg:w-10 lg:h-10 flex justify-center font-bold text-base md:text-lg lg:text-xl items-center rounded-full "
               style={{ background: bgColor }}
             >
-              <p>{`${otherUser?.username[0]?.toUpperCase()}${otherUser?.username[1]?.toUpperCase()}`}</p>
+              <p>{`${otherUser?.username?.[0]?.toUpperCase()}${otherUser?.username?.[1]?.toUpperCase()}`}</p>
             </div>
           )}
         </div>
@@ -145,25 +114,36 @@ export default function Chat() {
           </div>
         </div>
       </div>
+      {outGoingMessage?.preview && <Preview
+        handleAttachment={setAttachment}
+        handleOutGoingMessage={setOutGoingMessage}
+        outGoingMessage={outGoingMessage}
+        setMessages={setMessages}
+        setUserConversations={setUserConversations}
+        setAttachment={setAttachment}
+        divRef={divRef}
 
-      <div className="flex-1 overflow-auto flex flex-col">
+      />
+      }
+
+      <div className={`flex-1 relative flex flex-col overflow-auto`} ref={divRef}>
         {showReactionUi?.state && (
           <ReactionUi
             message={showReactionUi?.obj}
+            receiverId={outGoingMessage.receiverId}
             event={showReactionUi?.event}
             setShowReactionUi={setShowReactionUi}
-            socketChat={socketChat}
-            userContent={userContent}
           // chatId={conversationId[2]}
           />
         )}
-        <ul className="list-none gap-3 flex flex-col p-3 ">
+        <ul className="list-none gap-3 flex flex-col p-3">
+
           <div className="text-md text-green-600 text-center flex flex-col items-center gap-3 my-4 mb-8">
             <div>
               <p>New chat started.</p>
               <p>Send a message to keep the chat going</p>
             </div>
-            {isRequestd && isConnected && connectionStatus && (
+            {isRequested && isConnected && connectionStatus && (
               <div className="flex flex-col gap-2 px-6 items-center">
                 <p>
                   This person is not in your connection list,what would you want
@@ -196,12 +176,12 @@ export default function Chat() {
           {conversationMessages?.map((message) => {
             const messagePosition =
               currentUserId === message?.sender ? "end" : "start";
-            message.align = messagePosition;
+            if (message) {
+              message.align = messagePosition;
+            }
+            const isReadId = message?.id ?? message?.msgId
+            const isRead = isReadId <= conversation?.lastReadMsgId && message?.sender === user?.id
 
-            const status = message.readStatus?.[otherUser?.id];
-            const hasReaction = Object.keys(message?.readStatus || {}).includes(
-              String(otherUser?.id),
-            );
             const reactedReactions = message?.reaction?.map((reaction, i) => {
               return (
                 <li
@@ -214,7 +194,7 @@ export default function Chat() {
             });
             return (
               <li
-                key={message?.id}
+                key={message?.id ?? message?.clientId}
                 className={`max-w-80 max-h-200 flex flex-col items-center ${message?.sender === currentUserId ? "self-end " : "self-start"} relative`}
                 onTouchStart={(e) =>
                   touchStart(e, setPresser, setShowReactionUi, message)
@@ -224,7 +204,7 @@ export default function Chat() {
                 <div
                   className={`${message?.sender == otherUser?.id ? "rounded-xl rounded-bl-xs bg-[rgba(0,0,0,0.7)]" : "rounded-xl rounded-br-xs bg-[#336333]"} p-1`}
                 >
-                  <div className="flex max-h-500">
+                  <div className="flex max-h-500 relative">
                     {message?.attachmentType?.includes('image') ? (
                       <img
                         src={message?.attachment}
@@ -244,23 +224,23 @@ export default function Chat() {
                     )}
                   </div>
                   <div className="flex justify-between">
-                    {message?.content?.length > 1 && <p className="text-white leading-5 text-sm md:text-sm lg:text-sm flex items-center p-1">
-                      {message?.content}
+                    {message?.text?.length >= 1 && <p className="text-white leading-5 text-sm md:text-sm lg:text-sm flex items-center">
+                      {message?.text}
                     </p>}
-                    {message.sender == currentUserId && (
+                    {message?.sender == currentUserId && (
                       <p className="absolute  flex ml-1 self-end bottom-1 right-0">
                         {
                           // status === "Read" ||
                           // status === "Delivered" ||
-                          userStatus.includes(otherUser?.id) && (
+                          (message.status?.toLowerCase() === 'delivered' || isRead) && (
                             <TickIcon
-                              className={`absolute -top-0.5 right-0.5 self-end ${status === "Read" && hasReaction ? "text-[#bcbcf1]" : "text-gray-500"}  w-4 block`}
+                              className={`absolute -top-0.5 right-0.5 self-end ${isRead ? "text-[#bcbcf1]" : "text-gray-500"}  w-4 block`}
                             />
                           )
                         }
 
                         <TickIcon
-                          className={`self-end text-[#bcbcf1] w-3 ${status === "Read" ? "text-[#bcbcf1]" : "text-gray-500"} `}
+                          className={`self-end text-[#bcbcf1] w-3 ${isRead ? "text-[#bcbcf1]" : "text-gray-500"} `}
                         />
                       </p>
                     )}
@@ -274,42 +254,53 @@ export default function Chat() {
                   </ul>
                 )}
               </li>
+
             );
           })}
 
+
           <div
             ref={bottomRef}
-            className={` gap-1 ${typing?.isTyping && typing?.whoIsTyping === currentUserId
-              ? "flex"
+            className={` gap-1 ${typing ? "flex"
               : "invisible"
               }`}
           >
             <TypingIdicator />
           </div>
-        </ul>
 
+        </ul>
       </div>
 
 
 
+
+      {attachment && <AttachmentBox setOutGoingMessage={setOutGoingMessage} />}
       <TypingComponent
         handleAttachment={setAttachment}
-        handleUserContent={setUserContent}
-        userContent={userContent}
-        setMessages={setMessages}
-        socketChat={socketChat}
+        handleOutGoingMessage={setOutGoingMessage}
+        outGoingMessage={outGoingMessage}
       />
-      {attachment && <AttachmentBox setUserContent={setUserContent} />}
 
-      <Preview
-        handleAttachment={setAttachment}
-        handleUserContent={setUserContent}
-        userContent={userContent}
-        message={conversationMessages}
-        setMessages={setMessages}
-        chatId={chatId}
-        socketChat={socketChat}
-      />
     </div >
   );
 }
+
+
+
+
+
+
+
+
+
+// {(message?.attachmentType?.includes('image') || message?.attachmentType?.includes('video')) && (
+//   <div className="flex flex-col justify-center items-center h-full absolute w-full backdrop-blur-lg bg-[rgba(0,0,0,0,0.1)]">
+//     <div className="relative">
+//       <div>
+//         <div className="w-10 h-10 border-4 rounded-full border-gray-500 border-t-transparent animate-spin"></div>
+//       </div>
+//       <div className="absolute top-2 left-2">hello</div>
+//     </div>
+//   </div>
+// )}
+

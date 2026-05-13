@@ -2,7 +2,6 @@ import { api } from "../utils";
 import { useLoaderData, Navigate } from "react-router-dom";
 import { Outlet } from "react-router-dom";
 import { useEffect, useRef, useState, useContext, createContext } from "react";
-import { useChat } from "../hooks/chatHook";
 import { normalise } from "../utils/chatUtil";
 import { setAuthToken } from "../utils";
 // import { setAuthToken } from "./utils";
@@ -13,6 +12,7 @@ export default function AuthProvider({ children }) {
 
 
   const [auth, setAuth] = useState({ user: null, token: localStorage.getItem('access'), isAuthenticated: false })
+
 
   useEffect(() => {
 
@@ -32,18 +32,31 @@ export default function AuthProvider({ children }) {
     checkUser()
   }, [auth.token])
 
-  const [currenctChat, setCurrentChat] = useState()
-
+  const chatWs = useRef(null)
   const [userStatus, setUserStatus] = useState([]);
   const userStatusRef = useRef(null);
-  const [chat, setChatId] = useState(null);
   const [messages, setMessages] = useState({});
-  const [userConversations, setUserConversations] = useState({});
+  const [userConversations, setUserConversations] = useState({ conversations: {}, ordering: [] });
   const [typing, setTyping] = useState({ isTyping: false, user: "" });
   const [connections, setConnections] = useState([]);
   //websocket state stuff
   const socketChat = useRef(null);
-
+  // const wrappedSetUserConversations = (updater) => {
+  //   setUserConversations(prev => {
+  //     const next =
+  //       typeof updater === "function"
+  //         ? updater(prev)
+  //         : updater;
+  //
+  //     console.group("USER CONVO UPDATE");
+  //     console.trace();
+  //     console.log("PREV", prev);
+  //     console.log("NEXT", next);
+  //     console.groupEnd();
+  //
+  //     return next;
+  //   });
+  // };
 
   return (
     <AuthContext.Provider
@@ -57,13 +70,12 @@ export default function AuthProvider({ children }) {
         userStatus,
         messages,
         setMessages,
-        setChatId,
         socketChat,
         userStatusRef,
         setUserStatus,
         typing,
         setTyping,
-        currenctChat,
+        chatWs
       }} className="h-screen overflow-y-hidden border-2 border-red-500" >
       {children}
     </AuthContext.Provider>
