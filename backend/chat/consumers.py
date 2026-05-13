@@ -80,7 +80,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # self.conversation.participants.add(self.conversation.pending_user[0])
     async def receive(self, text_data = None, bytes_data = None):
         data=json.loads(text_data)
-        print('MAIN DATA:',data)
         receiver_id=data.pop('receiverId')
         group=f'user_{receiver_id}'
         self.conversation=await database_sync_to_async(lambda:Conversation.objects.filter(id=data.get('conversation'),participants=self.current_user.id).filter(participants=receiver_id).first())()
@@ -97,9 +96,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await self.channel_layer.group_send(group,{'type':'chat.message','message':data})
                 return
             if 'lastReadMsgId' in data: 
-                print('here bro:',data)
                 await self.mark_as_read(data)
-                print('Group:',group)
                 await self.channel_layer.group_send(group,{'type':'chat.message','message':{'conversation':data.get('conversation'),'lastReadMsgId':data.get('lastReadMsgId')}})
                 return
             if 'reaction' in data:
