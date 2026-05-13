@@ -47,7 +47,7 @@ export default function AddNewChat({ connections, setHideAddNewChat }) {
   let count = 0
   function createNewConversation(user) {
     if (isCreating.current) return
-
+    console.log('USER:', user)
     isCreating.current = true
     console.log(count++)
     const tempConvo = {
@@ -59,28 +59,16 @@ export default function AddNewChat({ connections, setHideAddNewChat }) {
       // const { conversations, ordering } = prev
       const conversations = prev?.conversations ?? {}
       const ordering = prev?.ordering ?? []
-      return {
+      console.log('TEMPCONVO:', tempConvo)
+      const tempChat = {
         ...prev,
         conversations: { ...(conversations ?? {}), [temporaryChatId]: tempConvo },
         ordering: [...(ordering ?? []), temporaryChatId]
       }
+      console.log('TEMPCHAT:', tempChat)
+      return tempChat
     })
     navigate(`chat/${temporaryChatId}`)
-    // try {
-    //   if (isCreating) return
-    //   setIsCreating(true)
-    //   const startNewConversation = await api.post("api/conversation/create/", {
-    //     pending_user: [user.id], chatType: 'direct'
-    //   });
-    //   const newConvo = startNewConversation.data;
-    //   const { id } = newConvo;
-    //   navigate(`chat/${id}`, { state: { newConvo: newConvo }, replace: true });
-    // } catch (error) {
-    //   console.error(error);
-    // }
-    // finally {
-    //   setIsCreating(false)
-    // }
   }
   const foundUsers = searchResult?.map((user) => {
     return (

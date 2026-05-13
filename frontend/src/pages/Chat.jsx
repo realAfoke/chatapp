@@ -27,6 +27,8 @@ export default function Chat() {
 
 
   const conversations = userConversations?.conversations ?? {};
+  console.log('ALL CONVERSATION:', conversations)
+  console.log('CHATID:', chatId)
   const divRef = useRef(null)
 
 
