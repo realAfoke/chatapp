@@ -73,7 +73,7 @@ export default function ConversationsLayOut() {
   })
   return (
     <div className="relative flex overflow-hidden h-screen flex-col md:flex-row lg:flex-row gap-1">
-      <div className={` ${chatId || showProfile ? 'hidden md:flex md:flex-col lg:flex' : 'flex flex-col'}`}>
+      <div className={` ${chatId || showProfile ? 'hidden md:flex md:flex-col lg:flex' : 'flex flex-col min-w-[25em]'}`}>
         <Menu handleProfile={setShowProfile} />
         <div className="p-2">
           <input
