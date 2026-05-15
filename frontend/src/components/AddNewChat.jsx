@@ -49,9 +49,11 @@ export default function AddNewChat({ connections, setHideAddNewChat }) {
     isCreating.current = true
     const tempConvo = {
       messages: [],
-      otherUser: user
+      otherUser: user,
+      isTemporaryChat: true
     }
     const temporaryChatId = crypto.randomUUID()
+    tempConvo.id = temporaryChatId
     setUserConversations((prev) => {
       // const { conversations, ordering } = prev
       const conversations = prev?.conversations ?? {}
