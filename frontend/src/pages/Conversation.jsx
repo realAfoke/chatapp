@@ -164,8 +164,10 @@ export function Convo({ conversation, otherUser }) {
           <p className="font-medium text-xs md:text-sm lg:text-base ">
             {conversation.name ? conversation.name : otherUser.username}
           </p>
-          {conversation?.typing?.isTyping ? (
-            <TypingIdicator />
+          {conversation?.typing ? (
+            <div className="py-1">
+              <TypingIdicator />
+            </div>
           ) : (
             <p className="text-gray-500 truncate w-60 text-xs md:text-sm lg:text-sm">{conversation.lastInteraction === 'text' ? conversation?.lastMsg : conversation?.recentReaction}</p>
           )}

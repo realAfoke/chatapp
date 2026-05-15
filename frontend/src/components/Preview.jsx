@@ -17,12 +17,12 @@ export default function Preview({
   const pos = { bottom: objViewPort.top }
   return (
     <div
-      className={` absolute z-9999 block my-3 h-full w-full backdrop-blur-sm bg-[rgba(0, 0, 0, 0.8)] flex flex-col overflow-hidden`} style={pos}
+      className={`flex flex-col justify-center items-center absolute z-9999 block my-3 h-full w-full backdrop-blur-sm bg-[rgba(0, 0, 0, 0.8)] flex flex-col justify-center overflow-hidden`} style={pos}
     >
-      <div className="flex-1 flex flex-col justify-center overflow-hidden items-center">
+      <div className=" h-[calc(100%-40%)]">
         <img
           src={close}
-          className="w-10 h-10 outline-none text-[20px] font-bold absolute top-0 right-0 text-white m-4"
+          className="w-10 h-10 outline-none text-[20px] font-bold absolute top-20 right-0 text-white m-4"
           onClick={() =>
             handleOutGoingMessage((prev) => ({ ...prev, preview: null, attachment: null, type: null }))
           }
