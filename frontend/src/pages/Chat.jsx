@@ -70,7 +70,7 @@ export default function Chat() {
   const bgColor = generateRandomColors();
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden relative">
 
       <div className="flex items-center bg-[#336333] gap-2 shadow-sm py-3 px-2">
         <img

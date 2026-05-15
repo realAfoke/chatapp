@@ -94,7 +94,7 @@ export function useChat(
 
 	useEffect(() => {
 
-		if (!outGoingMessage?.text || convoMessages?.length <= 0) return
+		// if (!outGoingMessage?.text || convoMessages?.length <= 0) return
 		const socket = chatWs.current
 
 		if (socket && socket.readyState === WebSocket.OPEN) {
