@@ -44,12 +44,9 @@ export default function AddNewChat({ connections, setHideAddNewChat }) {
     }, 300);
   }, [searchUser]);
 
-  let count = 0
   function createNewConversation(user) {
     if (isCreating.current) return
-    console.log('USER:', user)
     isCreating.current = true
-    console.log(count++)
     const tempConvo = {
       messages: [],
       otherUser: user
@@ -59,15 +56,13 @@ export default function AddNewChat({ connections, setHideAddNewChat }) {
       // const { conversations, ordering } = prev
       const conversations = prev?.conversations ?? {}
       const ordering = prev?.ordering ?? []
-      console.log('TEMPCONVO:', tempConvo)
-      const tempChat = {
+      return {
         ...prev,
         conversations: { ...(conversations ?? {}), [temporaryChatId]: tempConvo },
         ordering: [...(ordering ?? []), temporaryChatId]
       }
-      console.log('TEMPCHAT:', tempChat)
-      return tempChat
     })
+    setHideAddNewChat(true)
     navigate(`chat/${temporaryChatId}`)
   }
   const foundUsers = searchResult?.map((user) => {
