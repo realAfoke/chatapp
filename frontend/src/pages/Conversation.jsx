@@ -136,6 +136,7 @@ export function Convo({ conversation, otherUser }) {
     }
   };
   const bgColor = generateRandomColors();
+  console.log('unread:', conversation?.unreadMssgCount)
   return (
     <Link
       to={`chat/${conversation?.id}`} replace
@@ -170,11 +171,12 @@ export function Convo({ conversation, otherUser }) {
           )}
         </div>
         <div className="flex flex-col items-end gap-2">
-          <span
+          {conversation?.unreadMssgCount > 0 && <span
             className={`bg-green-500 text-white rounded-full  text-xs md:text-sm lg:text-base px-3 py-1 ${conversation.unreadMssgCount === 0 ? "hidden" : "block"}`}
           >
             {conversation.unreadMssgCount}
           </span>
+          }
 
           <span className="text-green-500  text-xs md:text-sm lg:text-sm ">
             {lastMssg?.timestamp ? mssgTime(lastMssg?.timestamp) : ""}{" "}
