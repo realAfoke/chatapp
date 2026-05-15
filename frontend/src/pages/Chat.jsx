@@ -27,13 +27,16 @@ export default function Chat() {
 
 
   const conversations = userConversations?.conversations ?? {};
-  console.log('ALL CONVERSATION:', conversations)
-  console.log('CHATID:', chatId)
   const divRef = useRef(null)
 
 
   const [presser, setPresser] = useState(false)
   const conversation = conversations?.[chatId] ?? {}
+  useEffect(() => {
+    if (Object.keys(conversation).length === 0) {
+      navigate('/conversations/')
+    }
+  }, [])
 
   const connectionRequest = conversation?.connectionRequest;
 
@@ -103,7 +106,7 @@ export default function Chat() {
               className="  w-8 h-8 md:w-10 md:h-10 lg:w-10 lg:h-10 flex justify-center font-bold text-base md:text-lg lg:text-xl items-center rounded-full "
               style={{ background: bgColor }}
             >
-              <p>{`${otherUser?.username?.[0]?.toUpperCase()}${otherUser?.username?.[1]?.toUpperCase()}`}</p>
+              <p>{Object.keys(otherUser).length > 0 ? `${otherUser?.username?.[0]?.toUpperCase()}${otherUser?.username?.[1]?.toUpperCase()}` : ''}</p>
             </div>
           )}
         </div>

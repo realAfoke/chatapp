@@ -1,4 +1,3 @@
-import { replace } from "react-router-dom";
 import { redirect } from "react-router-dom";
 import { api } from "../utils";
 import { getDb } from "../utils";
@@ -9,7 +8,7 @@ import { getDb } from "../utils";
 
 
 export function formatDate(timestamp) {
-  if (!timestamp) return
+  if (!timestamp) return ""
   const mssgDate = new Date(timestamp);
   const now = new Date();
   const diff = now - mssgDate;
