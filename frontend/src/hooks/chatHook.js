@@ -93,14 +93,13 @@ export function useChat(
 
 
 	useEffect(() => {
-
-		// if (!outGoingMessage?.text || convoMessages?.length <= 0) return
+		if (isNaN(conversationId)) return
 		const socket = chatWs.current
-
 		if (socket && socket.readyState === WebSocket.OPEN) {
-			socket.send(JSON.stringify({ isTyping: outGoingMessage.text.length > 0 ? true : false, conversation: conversationId, receiverId: otherUser?.id }))
+			const typing = { isTyping: outGoingMessage.text.length > 0 ? true : false, conversation: conversationId, receiverId: otherUser?.id }
+			socket.send(JSON.stringify(typing))
 		}
-	}, [outGoingMessage?.text])
+	}, [outGoingMessage?.text, conversationId])
 
 
 	useEffect(() => {

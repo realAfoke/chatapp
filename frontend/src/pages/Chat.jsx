@@ -284,6 +284,7 @@ export default function Chat() {
         handleAttachment={setAttachment}
         handleOutGoingMessage={setOutGoingMessage}
         outGoingMessage={outGoingMessage}
+        otherUser={otherUser}
       />
 
     </div >

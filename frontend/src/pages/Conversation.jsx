@@ -136,7 +136,6 @@ export function Convo({ conversation, otherUser }) {
     }
   };
   const bgColor = generateRandomColors();
-  console.log('unread:', conversation?.unreadMssgCount)
   return (
     <Link
       to={`chat/${conversation?.id}`} replace
