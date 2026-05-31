@@ -3,12 +3,9 @@ import { useState } from "react";
 import { useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { redirect } from "react-router-dom";
-import useAuth from "../routes/context"
 
 
 export default function Otp() {
-  const { setAuth } = useAuth()
   const location = useLocation();
   const navigate = useNavigate();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
@@ -41,11 +38,10 @@ export default function Otp() {
   function confrimOtp() {
     setHide((prev) => ({ ...prev, loader: true }));
     const otp = Number(code.join(""));
-    const verify = api
-      .post("api/verify-otp/", {
-        [fieldName]: location.state[fieldName],
-        otp: otp,
-      })
+    api.post("api/verify-otp/", {
+      [fieldName]: location.state[fieldName],
+      otp: otp,
+    })
       .then((response) => {
         navigate("../continue", {
           state: { [fieldName]: location.state[fieldName] },
@@ -61,7 +57,7 @@ export default function Otp() {
       const check = await api.post("api/auth/check-email/", {
         [fieldName]: location.state[fieldName],
       });
-      const resp = await check.data;
+      await check.data;
       setHide((prev) => ({
         ...prev,
         message: "A new confirmation code has been sent to the email",

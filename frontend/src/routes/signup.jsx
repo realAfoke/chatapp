@@ -1,5 +1,7 @@
 import { Outlet } from "react-router-dom";
+import { useOutletContext } from "react-router-dom";
 export default function SignUp() {
+  const { errorLoader, setErrorLoader, setProgress } = useOutletContext()
   return (
     <div className="flex flex-col  justify-center h-screen">
       <div className="flex justify-center flex-col items-center py-5">
@@ -8,7 +10,7 @@ export default function SignUp() {
         </h2>
         <span>Join Earth group chat</span>
       </div>
-      <Outlet />
+      <Outlet context={{errorLoader,setErrorLoader,setProgress}} />
     </div>
   );
 }
